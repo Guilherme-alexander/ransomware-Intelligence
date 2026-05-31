@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anatomia do Ransomware — Ransomware Intelligence</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root { --c-bg:#080c14; --c-surface:#0e1420; --c-border:#1c2535; --c-accent:#0ea5e9; }
+    body { background: var(--c-bg); color: #e2e8f0; font-family: 'Syne', sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    nav { background: rgba(14,20,32,.95); border-bottom: 1px solid var(--c-border); backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 100; }
+    .nav-link { color: #64748b; font-size: .8rem; font-weight: 600; letter-spacing: .05em; padding: .5rem .75rem; border-radius: 6px; transition: all .2s; text-decoration: none; }
+    .nav-link:hover { color: var(--c-accent); background: rgba(14,165,233,.08); }
+    .nav-link.active { color: var(--c-accent); background: rgba(14,165,233,.12); }
+    .card { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: 12px; padding: 1.5rem; }
+    .chart-title { font-size: .78rem; font-weight: 700; letter-spacing: .08em; color: #64748b; text-transform: uppercase; margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+    @media(max-width:900px) { .grid-2,.grid-3 { grid-template-columns: 1fr; } }
+
+    /* Stage cards */
+    .stage { border-radius: 12px; padding: 1.25rem 1.5rem; border-left: 4px solid; position: relative; transition: transform .2s; }
+    .stage:hover { transform: translateX(4px); }
+    .stage-num { font-size: 2.5rem; font-weight: 800; opacity: .12; position: absolute; right: 1rem; top: .5rem; font-family: 'JetBrains Mono', monospace; }
+
+    .badge { font-size: .6rem; padding: .15rem .45rem; border-radius: 4px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+    .b-crit { background: rgba(239,68,68,.15); color: #ef4444; }
+    .b-high { background: rgba(249,115,22,.15); color: #f97316; }
+    .b-med  { background: rgba(234,179,8,.15);  color: #eab308; }
+
+    table { width: 100%; border-collapse: collapse; font-size: .78rem; }
+    thead th { background: #080c14; padding: .65rem 1rem; text-align: left; font-size: .68rem; letter-spacing: .08em; color: #64748b; text-transform: uppercase; border-bottom: 1px solid var(--c-border); }
+    tbody tr { border-bottom: 1px solid rgba(28,37,53,.5); }
+    tbody tr:hover { background: rgba(14,165,233,.04); }
+    tbody td { padding: .6rem 1rem; vertical-align: middle; }
+
+    ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: var(--c-bg); } ::-webkit-scrollbar-thumb { background: var(--c-border); border-radius: 2px; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none} }
+    .fade { animation: fadeIn .4s ease both; }
+  </style>
+</head>
+<body>
+<nav>
+  <div class="max-w-7xl mx-auto px-4 py-2 flex flex-wrap gap-1 items-center">
+    <span class="mono text-xs text-blue-400 font-bold mr-4">⬡ RWI</span>
+    <a href="dashboard.html" class="nav-link">📊 Dashboard</a>
+    <a href="grupos.html" class="nav-link">👥 Grupos</a>
+    <a href="comparar.html" class="nav-link">📋 Comparar</a>
+    <a href="criptografias.html" class="nav-link">🔐 Criptografias</a>
+    <a href="linguagens.html" class="nav-link">⌨️ Linguagens</a>
+    <a href="cve.html" class="nav-link">🛡️ CVEs</a>
+    <a href="org.html" class="nav-link">🏢 Alvos</a>
+    <a href="anatomia.html" class="nav-link active">🧬 Anatomia</a>
+    <a href="ransomware.html" class="nav-link">🏠 Início</a>
+  </div>
+</nav>
+<div class="max-w-7xl mx-auto px-4 py-8">
+  <h1 style="font-size:2rem;font-weight:800;letter-spacing:-.02em;margin-bottom:.25rem" class="fade">
+    🧬 Anatomia do <span style="color:#ec4899">Ransomware</span>
+  </h1>
+  <p class="mono fade" style="color:#64748b;font-size:.8rem;margin-bottom:1.5rem">
+    Estrutura técnica completa · fases de operação · técnicas avançadas · 2025–2026
+  </p>
+
+  <!-- Overview card -->
+  <div class="card mb-4 fade" style="border-left:4px solid #ec4899">
+    <div style="font-size:.75rem;color:#94a3b8;line-height:1.7">
+      Um ransomware moderno é uma <strong style="color:#e2e8f0">operação criminosa profissional</strong>, não apenas um malware simples.
+      Ele segue um fluxo estruturado de <strong style="color:#ec4899">8 fases</strong>, combinando técnicas avançadas de evasão, reconhecimento, exfiltração e extorsão múltipla.
+      Os grupos modernos operam como empresas com RH, suporte técnico, afiliados e até políticas de "clientes".
+    </div>
+  </div>
+
+  <!-- Charts Row -->
+  <div class="grid-3 mb-4 fade">
+    <div class="card">
+      <div class="chart-title"><i class="fas fa-door-open text-blue-400"></i> Vetores de Infecção</div>
+      <canvas id="vectorChart" height="200"></canvas>
+    </div>
+    <div class="card">
+      <div class="chart-title"><i class="fas fa-exclamation-triangle text-red-400"></i> Criticidade das Fases</div>
+      <canvas id="phaseChart" height="200"></canvas>
+    </div>
+    <div class="card">
+      <div class="chart-title"><i class="fas fa-chart-line text-green-400"></i> Complexidade Técnica (2017–2026)</div>
+      <canvas id="evolutionChart" height="200"></canvas>
+    </div>
+  </div>
+
+  <!-- Stages -->
+  <h2 style="font-size:1rem;font-weight:700;letter-spacing:.05em;color:#64748b;text-transform:uppercase;margin-bottom:1rem" class="fade">
+    📍 Fases da Operação
+  </h2>
+  <div id="stagesContainer" style="display:flex;flex-direction:column;gap:.75rem;margin-bottom:1.5rem" class="fade"></div>
+
+  <!-- Types table -->
+  <div class="card mb-4 fade">
+    <div class="chart-title"><i class="fas fa-layer-group text-yellow-400"></i> Tipos por Comportamento</div>
+    <table>
+      <thead><tr><th>Tipo</th><th>Característica Principal</th><th>Exemplos</th><th>Extorsão</th></tr></thead>
+      <tbody>
+        <tr><td style="font-weight:700">Crypto Ransomware</td><td style="color:#94a3b8">Criptografa arquivos e exige pagamento</td><td style="color:#38bdf8">LockBit, Akira, Ryuk</td><td><span class="badge b-high">SIMPLES</span></td></tr>
+        <tr><td style="font-weight:700">RaaS</td><td style="color:#94a3b8">Ransomware como serviço — operador + afiliados</td><td style="color:#38bdf8">LockBit, Qilin, Black Basta</td><td><span class="badge b-high">DUPLA</span></td></tr>
+        <tr><td style="font-weight:700">Double Extortion</td><td style="color:#94a3b8">Roubo de dados + criptografia + ameaça de vazamento</td><td style="color:#38bdf8">Clop, ALPHV, Conti, Maze</td><td><span class="badge b-crit">DUPLA</span></td></tr>
+        <tr><td style="font-weight:700">Triple Extortion</td><td style="color:#94a3b8">Double + DDoS na vítima + contato a clientes dela</td><td style="color:#38bdf8">Clop, RagnarLocker</td><td><span class="badge b-crit">TRIPLA</span></td></tr>
+        <tr><td style="font-weight:700">Big Game Hunting</td><td style="color:#94a3b8">Ataques manuais altamente seletivos a grandes alvos</td><td style="color:#38bdf8">Ryuk, DarkSide, RagnarLocker</td><td><span class="badge b-crit">DUPLA/TRIPLA</span></td></tr>
+        <tr><td style="font-weight:700">Wiper Disfarçado</td><td style="color:#94a3b8">Destruição total de dados — sem intenção de decriptar</td><td style="color:#38bdf8">NotPetya, WhisperGate</td><td><span class="badge b-med">NENHUMA</span></td></tr>
+        <tr><td style="font-weight:700">Industrial (ICS)</td><td style="color:#94a3b8">Targeting de sistemas OT/SCADA/ICS</td><td style="color:#38bdf8">Snake (Ekans), Industroyer2</td><td><span class="badge b-high">SIMPLES</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Advanced techniques -->
+  <div class="card fade">
+    <div class="chart-title"><i class="fas fa-bolt text-yellow-400"></i> Técnicas Avançadas (2025–2026)</div>
+    <div id="advancedGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.75rem"></div>
+  </div>
+
+  <footer style="text-align:center;font-size:.7rem;color:#334155;border-top:1px solid #1c2535;padding-top:1.5rem;margin-top:2rem;font-family:'JetBrains Mono',monospace">
+    Baseado em análise de LockBit, Conti, BlackCat, Akira, Qilin e outras 50+ famílias · MITRE ATT&CK Framework
+  </footer>
+</div>
+<script>
+Chart.defaults.color = '#94a3b8';
+Chart.defaults.font.family = "'Syne', sans-serif";
+Chart.defaults.borderColor = '#1c2535';
+
+const STAGES = [
+  { num:"01", icon:"🚪", title:"Vetor de Entrada", color:"#3b82f6", importance:"Alta", badge:"b-high",
+    content:"Phishing/spear-phishing, RDP exposto, VPN vulnerável, supply chain comprometida, Initial Access Broker (IAB), malspam, USB, exploits zero-day.",
+    mitre:["T1566","T1133","T1195"] },
+  { num:"02", icon:"📥", title:"Dropper / Loader", color:"#06b6d4", importance:"Média", badge:"b-med",
+    content:"Obfuscação de payload, anti-VM, anti-debug, anti-sandbox. Download de payload via PowerShell, DLL sideloading, JavaScript, reflective injection.",
+    mitre:["T1059","T1027","T1055"] },
+  { num:"03", icon:"🔑", title:"Persistência & Escalada de Privilégio", color:"#eab308", importance:"Alta", badge:"b-high",
+    content:"UAC Bypass, Registry Run Keys, desabilita Windows Defender/Firewall, deleta Shadow Copies, instala backdoor (Cobalt Strike, Brute Ratel).",
+    mitre:["T1548","T1547","T1490"] },
+  { num:"04", icon:"🔍", title:"Reconhecimento & Movimento Lateral", color:"#a855f7", importance:"Muito Alta", badge:"b-crit",
+    content:"Mapeia rede (nmap, ADExplorer), enumera domínio AD, identifica backups, servidores críticos. Usa PsExec, SMB, WMI para movimento lateral.",
+    mitre:["T1018","T1021","T1087"] },
+  { num:"05", icon:"📤", title:"Exfiltração de Dados", color:"#ef4444", importance:"Crítica", badge:"b-crit",
+    content:"Roubo silencioso antes da criptografia via Rclone → Mega/S3/FTP privado. Base da Double/Triple Extortion. Pode demorar dias a semanas.",
+    mitre:["T1567","T1537","T1048"] },
+  { num:"06", icon:"🔒", title:"Criptografia", color:"#22c55e", importance:"Crítica", badge:"b-crit",
+    content:"AES-256 + RSA-4096 / ChaCha20. Modos: full, intermittent (parcial para velocidade), in-memory. Encripta também compartilhamentos de rede e backups acessíveis.",
+    mitre:["T1486"] },
+  { num:"07", icon:"🌐", title:"Comunicação com C2", color:"#f97316", importance:"Alta", badge:"b-high",
+    content:"Envia fingerprint da vítima, recebe chave de sessão e comandos. Usa Tor onion, proxies, domínios DGA, HTTPS. Heartbeat periódico.",
+    mitre:["T1090","T1071","T1573"] },
+  { num:"08", icon:"💰", title:"Extorsão & Negociação", color:"#ec4899", importance:"Alta", badge:"b-high",
+    content:"Ransom note (TXT/HTML), deadline com contador, chat de negociação via Tor. Ameaças: vazamento no leak site, DDoS, notificação de clientes/reguladores.",
+    mitre:["T1657"] },
+];
+
+// Render stages
+document.getElementById('stagesContainer').innerHTML = STAGES.map(s=>`
+  <div class="stage" style="background:rgba(14,20,32,.8);border-left-color:${s.color}">
+    <div class="stage-num">${s.num}</div>
+    <div style="display:flex;align-items:flex-start;gap:1rem">
+      <div style="font-size:1.75rem;flex-shrink:0">${s.icon}</div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:.4rem">
+          <h3 style="font-size:.95rem;font-weight:700">${s.num}. ${s.title}</h3>
+          <span class="badge ${s.badge}">${s.importance.toUpperCase()}</span>
+          <span class="mono" style="font-size:.65rem;color:#475569">${s.mitre.join(' · ')}</span>
+        </div>
+        <p style="font-size:.8rem;color:#94a3b8;line-height:1.6">${s.content}</p>
+      </div>
+    </div>
+  </div>`).join('');
+
+// Charts
+new Chart(document.getElementById('vectorChart'), {
+  type:'pie',
+  data:{ labels:['Phishing/Email','RDP/VPN','Exploit/Zero-day','Supply Chain','IAB/USB'], datasets:[{ data:[35,28,18,12,7], backgroundColor:['#3b82f6','#f97316','#ef4444','#8b5cf6','#22c55e'], borderWidth:0 }] },
+  options:{ responsive:true, plugins:{ legend:{ position:'right', labels:{font:{size:10},boxWidth:12} } } }
+});
+
+new Chart(document.getElementById('phaseChart'), {
+  type:'bar',
+  data:{ labels:['Exfiltração','Criptografia','Reconhecimento','Persistência','C2','Extorsão','Dropper','Entrada'],
+    datasets:[{ label:'Criticidade', data:[95,90,85,75,70,65,55,80], backgroundColor:['#ef4444','#ef4444','#f97316','#f97316','#eab308','#eab308','#64748b','#f97316'], borderRadius:4 }] },
+  options:{ indexAxis:'y', responsive:true, plugins:{legend:{display:false}}, scales:{x:{max:100,title:{display:true,text:'%',color:'#64748b'}},y:{ticks:{font:{size:10}}}} }
+});
+
+new Chart(document.getElementById('evolutionChart'), {
+  type:'line',
+  data:{ labels:['2017','2018','2019','2020','2021','2022','2023','2024','2025','2026'],
+    datasets:[{ label:'Complexidade Técnica', data:[40,55,65,72,82,87,90,93,96,98], borderColor:'#22c55e', fill:true, backgroundColor:'rgba(34,197,94,.08)', tension:.4 }] },
+  options:{ responsive:true, plugins:{legend:{display:false}}, scales:{y:{min:0,max:100,title:{display:true,text:'Índice',color:'#64748b'}},x:{ticks:{font:{size:10}}}} }
+});
+
+// Advanced techniques
+const techniques = [
+  { name:"Living off the Land (LotL)", desc:"Usa ferramentas legítimas do SO (PowerShell, WMI, PsExec) para evadir EDR.", col:"#3b82f6" },
+  { name:"Fileless Malware", desc:"Executa payload inteiramente em memória RAM — sem arquivo em disco.", col:"#22c55e" },
+  { name:"Intermittent Encryption", desc:"Encripta apenas partes dos arquivos (ex: primeiros 50%) para ganhar velocidade.", col:"#eab308" },
+  { name:"Active Directory Abuse", desc:"DCSync, Kerberoasting, Pass-the-Hash para comprometer domínio inteiro.", col:"#a855f7" },
+  { name:"VMware ESXi Targeting", desc:"Encripta VMs diretamente nos hipervisores para máximo impacto.", col:"#ef4444" },
+  { name:"IaaS Exfiltration (Rclone)", desc:"Usa Rclone para exfiltrar dados para Mega, S3 ou FTP antes de encriptar.", col:"#f97316" },
+  { name:"Anti-VM / Anti-Sandbox", desc:"Detecta ambientes de análise e dorme ou se autodestrói para evadir análise.", col:"#06b6d4" },
+  { name:"AI-powered Phishing (2026)", desc:"Usa LLMs para gerar spear-phishing hiper-personalizado e altamente convincente.", col:"#ec4899" },
+  { name:"Post-Quantum Crypto (2026)", desc:"Substitui RSA por Kyber (NIST PQC) tornando decriptação futura impossível.", col:"#8b5cf6" },
+  { name:"Credential Browser Theft", desc:"Rouba credenciais salvas no Chrome/Firefox antes de encriptar — amplia acesso.", col:"#f59e0b" },
+];
+document.getElementById('advancedGrid').innerHTML = techniques.map(t=>`
+  <div style="background:#080c14;border:1px solid var(--c-border);border-top:2px solid ${t.col};border-radius:8px;padding:.85rem 1rem">
+    <div style="font-size:.82rem;font-weight:700;margin-bottom:.35rem">${t.name}</div>
+    <div style="font-size:.72rem;color:#64748b;line-height:1.5">${t.desc}</div>
+  </div>`).join('');
+</script>
+</body>
+</html>

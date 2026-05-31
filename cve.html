@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CVEs & Vulnerabilidades — Ransomware Intelligence</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root { --c-bg:#080c14; --c-surface:#0e1420; --c-border:#1c2535; --c-accent:#0ea5e9; }
+    body { background: var(--c-bg); color: #e2e8f0; font-family: 'Syne', sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    nav { background: rgba(14,20,32,.95); border-bottom: 1px solid var(--c-border); backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 100; }
+    .nav-link { color: #64748b; font-size: .8rem; font-weight: 600; letter-spacing: .05em; padding: .5rem .75rem; border-radius: 6px; transition: all .2s; text-decoration: none; }
+    .nav-link:hover { color: var(--c-accent); background: rgba(14,165,233,.08); }
+    .nav-link.active { color: var(--c-accent); background: rgba(14,165,233,.12); }
+    .card { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: 12px; padding: 1.5rem; }
+    .chart-title { font-size: .78rem; font-weight: 700; letter-spacing: .08em; color: #64748b; text-transform: uppercase; margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+    @media(max-width:900px) { .grid-2,.grid-3 { grid-template-columns: 1fr; } }
+
+    /* CVE Cards */
+    .cve-card { border-radius: 10px; padding: 1rem 1.25rem; border-left: 4px solid; transition: transform .2s, box-shadow .2s; cursor: default; }
+    .cve-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,.4); }
+    .sev-critical { background: rgba(127,26,26,.3); border-color: #ef4444; }
+    .sev-high     { background: rgba(120,53,15,.3); border-color: #f97316; }
+    .sev-medium   { background: rgba(113,63,18,.3); border-color: #eab308; }
+    .sev-low      { background: rgba(30,58,95,.3);  border-color: #3b82f6; }
+
+    .badge { font-size: .6rem; padding: .15rem .4rem; border-radius: 4px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+    .b-critical { background: rgba(239,68,68,.15); color: #ef4444; }
+    .b-high     { background: rgba(249,115,22,.15); color: #f97316; }
+    .b-medium   { background: rgba(234,179,8,.15);  color: #eab308; }
+    .b-low      { background: rgba(59,130,246,.15); color: #60a5fa; }
+
+    /* Usage bar */
+    .usage-bar { height: 5px; border-radius: 3px; margin-top: 6px; }
+
+    ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: var(--c-bg); } ::-webkit-scrollbar-thumb { background: var(--c-border); border-radius: 2px; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none} }
+    .fade { animation: fadeIn .4s ease both; }
+
+    /* Search */
+    input[type=text], select { background: #080c14; border: 1px solid var(--c-border); color: #e2e8f0; border-radius: 8px; padding: .45rem .75rem; font-size: .8rem; font-family: inherit; outline: none; }
+    input:focus, select:focus { border-color: var(--c-accent); }
+    input::placeholder { color: #475569; }
+  </style>
+</head>
+<body>
+<nav>
+  <div class="max-w-7xl mx-auto px-4 py-2 flex flex-wrap gap-1 items-center">
+    <span class="mono text-xs text-blue-400 font-bold mr-4">⬡ RWI</span>
+    <a href="dashboard.html" class="nav-link">📊 Dashboard</a>
+    <a href="grupos.html" class="nav-link">👥 Grupos</a>
+    <a href="comparar.html" class="nav-link">📋 Comparar</a>
+    <a href="criptografias.html" class="nav-link">🔐 Criptografias</a>
+    <a href="linguagens.html" class="nav-link">⌨️ Linguagens</a>
+    <a href="cve.html" class="nav-link active">🛡️ CVEs</a>
+    <a href="org.html" class="nav-link">🏢 Alvos</a>
+    <a href="anatomia.html" class="nav-link">🧬 Anatomia</a>
+    <a href="ransomware.html" class="nav-link">🏠 Início</a>
+  </div>
+</nav>
+
+<div class="max-w-7xl mx-auto px-4 py-8">
+  <h1 style="font-size:2rem;font-weight:800;letter-spacing:-.02em;margin-bottom:.25rem" class="fade">
+    🛡️ CVEs & <span style="color:#f59e0b">Vulnerabilidades</span>
+  </h1>
+  <p class="mono fade" style="color:#64748b;font-size:.8rem;margin-bottom:1.5rem">
+    Principais falhas exploradas por ransomwares · 2000–2026 · NVD · CISA KEV · MITRE
+  </p>
+
+  <!-- KPI strip -->
+  <div style="display:flex;flex-wrap:wrap;gap:.75rem;margin-bottom:1.5rem" class="fade">
+    <div style="background:var(--c-surface);border:1px solid var(--c-border);border-radius:10px;padding:.75rem 1.25rem"><div style="font-size:1.1rem;font-weight:800;color:#ef4444">9</div><div class="mono" style="font-size:.68rem;color:#475569">CVEs Críticas</div></div>
+    <div style="background:var(--c-surface);border:1px solid var(--c-border);border-radius:10px;padding:.75rem 1.25rem"><div style="font-size:1.1rem;font-weight:800;color:#f97316">5</div><div class="mono" style="font-size:.68rem;color:#475569">CVEs Altas</div></div>
+    <div style="background:var(--c-surface);border:1px solid var(--c-border);border-radius:10px;padding:.75rem 1.25rem"><div style="font-size:1.1rem;font-weight:800;color:#0ea5e9">92%</div><div class="mono" style="font-size:.68rem;color:#475569">maior taxa de uso</div></div>
+    <div style="background:var(--c-surface);border:1px solid var(--c-border);border-radius:10px;padding:.75rem 1.25rem"><div style="font-size:1.1rem;font-weight:800;color:#22c55e">10.0</div><div class="mono" style="font-size:.68rem;color:#475569">CVSS máximo</div></div>
+    <div style="background:var(--c-surface);border:1px solid var(--c-border);border-radius:10px;padding:.75rem 1.25rem"><div style="font-size:1.1rem;font-weight:800;color:#a855f7">Windows</div><div class="mono" style="font-size:.68rem;color:#475569">plataforma mais alvo</div></div>
+  </div>
+
+  <!-- Charts Row 1 -->
+  <div class="grid-3 mb-4 fade">
+    <div class="card">
+      <div class="chart-title"><i class="fas fa-chart-pie text-red-400"></i> Distribuição por Severidade</div>
+      <canvas id="severityChart" height="200"></canvas>
+    </div>
+    <div class="card">
+      <div class="chart-title"><i class="fas fa-server text-blue-400"></i> Plataformas Alvo</div>
+      <canvas id="targetPlatformChart" height="200"></canvas>
+    </div>
+    <div class="card">
+      <div class="chart-title"><i class="fas fa-chart-line text-orange-400"></i> CVEs por Ano de Descoberta</div>
+      <canvas id="cveTimelineChart" height="200"></canvas>
+    </div>
+  </div>
+
+  <!-- Usage top chart -->
+  <div class="card mb-4 fade">
+    <div class="chart-title"><i class="fas fa-chart-bar text-yellow-400"></i> Taxa de Uso em Ransomwares (% de famílias que exploram a falha)</div>
+    <canvas id="usageChart" height="120"></canvas>
+  </div>
+
+  <!-- Filter + CVE Cards -->
+  <div style="display:flex;gap:.75rem;align-items:center;margin-bottom:1rem" class="fade">
+    <input type="text" id="cveSearch" placeholder="🔍 Filtrar CVE, plataforma, família..." style="flex:1;max-width:360px">
+    <select id="sevFilter">
+      <option value="">Todas as severidades</option>
+      <option value="Crítica">🔴 Crítica</option>
+      <option value="Alta">🟠 Alta</option>
+      <option value="Média">🟡 Média</option>
+    </select>
+    <span id="cveCount" class="mono" style="font-size:.75rem;color:#475569;margin-left:auto"></span>
+  </div>
+
+  <div id="cveGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:.75rem" class="fade"></div>
+
+  <footer style="text-align:center;font-size:.7rem;color:#334155;border-top:1px solid #1c2535;padding-top:1.5rem;margin-top:2rem;font-family:'JetBrains Mono',monospace">
+    Fonte: NVD (NIST) · CISA Known Exploited Vulnerabilities · MITRE ATT&CK · análises de incidentes reais
+  </footer>
+</div>
+
+<script>
+Chart.defaults.color = '#94a3b8';
+Chart.defaults.font.family = "'Syne', sans-serif";
+Chart.defaults.borderColor = '#1c2535';
+
+const CVE_DB = [
+  { id:"MS17-010 (EternalBlue)", cve:"CVE-2017-0144", year:2017, score:9.3, severity:"Crítica", target:"Windows (SMBv1)", usage:85, link:"https://nvd.nist.gov/vuln/detail/CVE-2017-0144", families:["WannaCry","NotPetya","Bad Rabbit","EternalRocks"], desc:"Execução remota de código no protocolo SMBv1. Explorado pela NSA, vazado pelo Shadow Brokers." },
+  { id:"RDP Brute Force", cve:"N/A (técnica)", year:2015, score:7.5, severity:"Alta", target:"RDP (Remote Desktop)", usage:92, link:"#", families:["Ryuk","LockBit","Conti","Dharma","Phobos","MedusaLocker","Play"], desc:"Ataque de força bruta em RDP exposto — o vetor de entrada mais usado historicamente." },
+  { id:"PrintNightmare", cve:"CVE-2021-34527", year:2021, score:8.8, severity:"Alta", target:"Windows Print Spooler", usage:45, link:"https://nvd.nist.gov/vuln/detail/CVE-2021-34527", families:["Conti","LockBit","Magniber"], desc:"Escalada de privilégios e execução remota via serviço Print Spooler do Windows." },
+  { id:"Log4Shell", cve:"CVE-2021-44228", year:2021, score:10.0, severity:"Crítica", target:"Apache Log4j (Java)", usage:30, link:"https://nvd.nist.gov/vuln/detail/CVE-2021-44228", families:["TellYouThePass","Khonsari"], desc:"JNDI injection no Log4j2. CVSS 10.0 — afetou milhões de serviços globalmente." },
+  { id:"MOVEit Transfer SQLi", cve:"CVE-2023-34362", year:2023, score:9.8, severity:"Crítica", target:"MOVEit Transfer (SQLi)", usage:25, link:"https://nvd.nist.gov/vuln/detail/CVE-2023-34362", families:["Clop"], desc:"SQL Injection no MOVEit Transfer — usado pelo Clop para comprometer 2700+ organizações." },
+  { id:"ProxyLogon", cve:"CVE-2021-26855", year:2021, score:9.8, severity:"Crítica", target:"Microsoft Exchange", usage:35, link:"https://nvd.nist.gov/vuln/detail/CVE-2021-26855", families:["DearCry","LockFile"], desc:"SSRF no Exchange Server que permite bypass de autenticação + execução de código." },
+  { id:"ZeroLogon", cve:"CVE-2020-1472", year:2020, score:10.0, severity:"Crítica", target:"Windows Netlogon (AD)", usage:40, link:"https://nvd.nist.gov/vuln/detail/CVE-2020-1472", families:["Ryuk","Conti","LockBit"], desc:"Falha criptográfica no protocolo Netlogon — permite comprometer Domain Controller zerado." },
+  { id:"BlueKeep", cve:"CVE-2019-0708", year:2019, score:9.8, severity:"Crítica", target:"Windows RDP (pré-auth)", usage:20, link:"https://nvd.nist.gov/vuln/detail/CVE-2019-0708", families:["BlueKeep ransomware"], desc:"Execução remota sem autenticação via RDP no Windows 7/2008. Potencial wormable." },
+  { id:"Kaseya VSA RCE", cve:"CVE-2021-30116", year:2021, score:9.8, severity:"Crítica", target:"Kaseya VSA (MSP)", usage:15, link:"https://nvd.nist.gov/vuln/detail/CVE-2021-30116", families:["REvil"], desc:"Zero-day em plataforma MSP — comprometeu 1500+ empresas via supply chain em 2021." },
+  { id:"Pulse Secure VPN", cve:"CVE-2019-11510", year:2019, score:10.0, severity:"Crítica", target:"Pulse Secure VPN", usage:28, link:"https://nvd.nist.gov/vuln/detail/CVE-2019-11510", families:["LockBit","Conti","DarkSide"], desc:"Leitura arbitrária de arquivos sem auth — credenciais VPN expostas em massa." },
+  { id:"VMware ESXi Heap", cve:"CVE-2021-21974", year:2021, score:8.8, severity:"Alta", target:"VMware ESXi", usage:38, link:"https://nvd.nist.gov/vuln/detail/CVE-2021-21974", families:["Hive","HelloKitty","Babuk","RansomEXX"], desc:"Heap overflow no OpenSLP do ESXi — execução remota em hipervisores VMware." },
+  { id:"Citrix ADC Path Trav.", cve:"CVE-2019-19781", year:2019, score:9.8, severity:"Crítica", target:"Citrix ADC / Gateway", usage:22, link:"https://nvd.nist.gov/vuln/detail/CVE-2019-19781", families:["RagnarLocker"], desc:"Path traversal + RCE no Citrix ADC — explorado massivamente antes do patch." },
+  { id:"Outlook NTLM Relay", cve:"CVE-2023-23397", year:2023, score:9.8, severity:"Crítica", target:"Microsoft Outlook", usage:18, link:"https://nvd.nist.gov/vuln/detail/CVE-2023-23397", families:["Clop","LockBit"], desc:"Zero-click NTLM relay via Outlook — não requer interação do usuário para roubar hash." },
+  { id:"Cisco VPN Auth Bypass", cve:"CVE-2023-20269", year:2023, score:9.1, severity:"Crítica", target:"Cisco ASA / FTD VPN", usage:20, link:"https://nvd.nist.gov/vuln/detail/CVE-2023-20269", families:["Akira","LockBit"], desc:"Bypass de autenticação no VPN do Cisco ASA — explorado intensamente pelo Akira em 2023–24." },
+  { id:"Phishing (Macros Office)", cve:"N/A (técnica)", year:2010, score:6.5, severity:"Média", target:"Microsoft Office Macros", usage:78, link:"#", families:["Locky","Cerber","GandCrab","REvil"], desc:"Macros VBA em documentos maliciosos — vetor de spam em massa histórico." },
+  { id:"GoAnywhere MFT RCE", cve:"CVE-2023-0669", year:2023, score:7.2, severity:"Alta", target:"GoAnywhere MFT", usage:12, link:"https://nvd.nist.gov/vuln/detail/CVE-2023-0669", families:["Clop"], desc:"RCE no GoAnywhere MFT — usado pelo Clop para comprometer 130+ empresas em fevereiro/2023." },
+  { id:"FortiOS SSL-VPN", cve:"CVE-2023-27997", year:2023, score:9.8, severity:"Crítica", target:"Fortinet FortiOS VPN", usage:15, link:"https://nvd.nist.gov/vuln/detail/CVE-2023-27997", families:["Akira","LockBit","Play"], desc:"Heap overflow pré-auth no SSL-VPN do FortiOS — explorado antes da divulgação pública." },
+  { id:"Supply Chain (genérico)", cve:"N/A (técnica)", year:2020, score:8.5, severity:"Alta", target:"Software Updates / MSP", usage:20, link:"#", families:["Clop","Play","REvil"], desc:"Comprometimento de cadeia de suprimentos de software para distribuição em escala." },
+];
+
+function sevClass(s) {
+  if (s==='Crítica') return 'sev-critical';
+  if (s==='Alta') return 'sev-high';
+  if (s==='Média') return 'sev-medium';
+  return 'sev-low';
+}
+function sevBadge(s) {
+  const cls = s==='Crítica'?'b-critical':s==='Alta'?'b-high':s==='Média'?'b-medium':'b-low';
+  return `<span class="badge ${cls}">${s.toUpperCase()}</span>`;
+}
+function scoreColor(n) {
+  if (n>=9) return '#ef4444';
+  if (n>=7) return '#f97316';
+  if (n>=4) return '#eab308';
+  return '#60a5fa';
+}
+
+function renderCVEs(list) {
+  document.getElementById('cveCount').textContent = list.length + ' CVEs';
+  document.getElementById('cveGrid').innerHTML = list.map(c => `
+    <div class="cve-card ${sevClass(c.severity)}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem">
+        <div>
+          <div style="font-weight:700;font-size:.9rem">${c.id}</div>
+          <div class="mono" style="font-size:.68rem;color:#64748b;margin-top:2px">${c.cve} · ${c.year}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:1.5rem;font-weight:800;color:${scoreColor(c.score)}">${c.score}</div>
+          <div class="mono" style="font-size:.6rem;color:#475569">CVSS /10</div>
+        </div>
+      </div>
+      <div style="font-size:.75rem;color:#94a3b8;margin:.6rem 0;line-height:1.5">${c.desc}</div>
+      <div style="font-size:.72rem;color:#64748b;margin-bottom:.5rem">
+        <i class="fas fa-server" style="margin-right:4px"></i>${c.target}
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap">
+        <div>
+          ${sevBadge(c.severity)}
+          <span class="mono" style="font-size:.68rem;color:#64748b;margin-left:.5rem">Uso: <strong style="color:#e2e8f0">${c.usage}%</strong></span>
+        </div>
+        ${c.link !== '#' ? `<a href="${c.link}" target="_blank" class="mono" style="font-size:.68rem;color:#38bdf8;text-decoration:none">NVD ↗</a>` : ''}
+      </div>
+      <div class="usage-bar" style="background:${scoreColor(c.score)};width:${c.usage}%;opacity:.6"></div>
+      <div style="margin-top:.6rem;font-size:.68rem;color:#475569">
+        Famílias: <span style="color:#94a3b8">${c.families.slice(0,5).join(' · ')}${c.families.length>5?'…':''}</span>
+      </div>
+    </div>`).join('');
+}
+
+// Initial render
+renderCVEs([...CVE_DB].sort((a,b)=>b.usage-a.usage));
+
+// Filters
+function applyFilters() {
+  const q = document.getElementById('cveSearch').value.toLowerCase();
+  const sev = document.getElementById('sevFilter').value;
+  let list = CVE_DB.filter(c => {
+    const txt = [c.id,c.cve,c.target,c.desc,...c.families].join(' ').toLowerCase();
+    return (!q || txt.includes(q)) && (!sev || c.severity === sev);
+  }).sort((a,b)=>b.usage-a.usage);
+  renderCVEs(list);
+}
+document.getElementById('cveSearch').addEventListener('input', applyFilters);
+document.getElementById('sevFilter').addEventListener('change', applyFilters);
+
+// Charts
+const sevCount = { 'Crítica':0,'Alta':0,'Média':0 };
+CVE_DB.forEach(c => { sevCount[c.severity]=(sevCount[c.severity]||0)+1; });
+new Chart(document.getElementById('severityChart'), {
+  type:'doughnut',
+  data:{ labels:Object.keys(sevCount), datasets:[{ data:Object.values(sevCount), backgroundColor:['#ef4444','#f97316','#eab308'], borderWidth:0 }] },
+  options:{ responsive:true, cutout:'60%', plugins:{ legend:{ position:'bottom', labels:{font:{size:11},boxWidth:12} } } }
+});
+
+const platCount = {};
+CVE_DB.forEach(c=>{
+  const t = c.target;
+  const key = t.includes('Windows')||t.includes('RDP')||t.includes('Netlogon')||t.includes('Print')||t.includes('Outlook') ? 'Windows/RDP' :
+              t.includes('VPN')||t.includes('Cisco')||t.includes('Fortinet')||t.includes('Pulse') ? 'VPN/Firewall' :
+              t.includes('VMware')||t.includes('ESXi') ? 'VMware' :
+              t.includes('Exchange') ? 'Exchange' :
+              t.includes('Office')||t.includes('Macro') ? 'Office' :
+              t.includes('Apache')||t.includes('Java') ? 'Linux/Java' :
+              t.includes('MOVEit')||t.includes('GoAnywhere')||t.includes('Kaseya')||t.includes('Citrix')||t.includes('MSP')||t.includes('Software') ? 'SaaS/MSP' : 'Outros';
+  platCount[key]=(platCount[key]||0)+1;
+});
+const platSorted = Object.entries(platCount).sort((a,b)=>b[1]-a[1]);
+new Chart(document.getElementById('targetPlatformChart'), {
+  type:'bar',
+  data:{ labels:platSorted.map(e=>e[0]), datasets:[{ label:'CVEs', data:platSorted.map(e=>e[1]), backgroundColor:'#0ea5e9', borderRadius:4 }] },
+  options:{ responsive:true, plugins:{legend:{display:false}}, scales:{y:{ticks:{stepSize:1}},x:{ticks:{font:{size:10}}}} }
+});
+
+const yrCount = {};
+CVE_DB.forEach(c=>{ if(typeof c.year==='number') yrCount[c.year]=(yrCount[c.year]||0)+1; });
+const yrKeys = Object.keys(yrCount).sort();
+new Chart(document.getElementById('cveTimelineChart'), {
+  type:'line',
+  data:{ labels:yrKeys, datasets:[{ label:'CVEs por ano', data:yrKeys.map(y=>yrCount[y]), borderColor:'#f59e0b', fill:true, backgroundColor:'rgba(245,158,11,.08)', tension:.3, pointRadius:5 }] },
+  options:{ responsive:true, plugins:{legend:{display:false}}, scales:{y:{ticks:{stepSize:1}},x:{ticks:{font:{size:10}}}} }
+});
+
+const topUsage = [...CVE_DB].sort((a,b)=>b.usage-a.usage).slice(0,10);
+new Chart(document.getElementById('usageChart'), {
+  type:'bar',
+  data:{ labels:topUsage.map(c=>c.id.length>28?c.id.substring(0,28)+'…':c.id), datasets:[{ label:'% de uso', data:topUsage.map(c=>c.usage), backgroundColor:topUsage.map(c=>c.score>=9.5?'#ef4444':c.score>=8?'#f97316':'#eab308'), borderRadius:4 }] },
+  options:{ responsive:true, plugins:{legend:{display:false}}, scales:{x:{ticks:{font:{size:10}}},y:{max:100,title:{display:true,text:'% famílias',color:'#64748b'}}} }
+});
+</script>
+</body>
+</html>

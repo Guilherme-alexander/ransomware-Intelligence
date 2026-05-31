@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Criptografias — Ransomware Intelligence</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root { --c-bg:#080c14; --c-surface:#0e1420; --c-border:#1c2535; --c-accent:#0ea5e9; }
+    body { background: var(--c-bg); color: #e2e8f0; font-family: 'Syne', sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    nav { background: rgba(14,20,32,.95); border-bottom: 1px solid var(--c-border); backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 100; }
+    .nav-link { color: #64748b; font-size: .8rem; font-weight: 600; letter-spacing: .05em; padding: .5rem .75rem; border-radius: 6px; transition: all .2s; text-decoration: none; }
+    .nav-link:hover { color: var(--c-accent); background: rgba(14,165,233,.08); }
+    .nav-link.active { color: var(--c-accent); background: rgba(14,165,233,.12); }
+    .card { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: 12px; padding: 1.5rem; }
+    .chart-title { font-size: .78rem; font-weight: 700; letter-spacing: .08em; color: #64748b; text-transform: uppercase; margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+    @media(max-width:900px) { .grid-2,.grid-3 { grid-template-columns: 1fr; } }
+    table { width: 100%; border-collapse: collapse; font-size: .78rem; }
+    thead th { background: #080c14; padding: .65rem 1rem; text-align: left; font-size: .68rem; letter-spacing: .08em; color: #64748b; text-transform: uppercase; border-bottom: 1px solid var(--c-border); }
+    tbody tr { border-bottom: 1px solid rgba(28,37,53,.5); }
+    tbody tr:hover { background: rgba(14,165,233,.04); }
+    tbody td { padding: .55rem 1rem; vertical-align: middle; }
+    .badge { font-size: .6rem; padding: .15rem .4rem; border-radius: 4px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+    ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: var(--c-bg); } ::-webkit-scrollbar-thumb { background: var(--c-border); border-radius: 2px; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none} }
+    .fade { animation: fadeIn .4s ease both; }
+  </style>
+</head>
+<body>
+<nav>
+  <div class="max-w-7xl mx-auto px-4 py-2 flex flex-wrap gap-1 items-center">
+    <span class="mono text-xs text-blue-400 font-bold mr-4">⬡ RWI</span>
+    <a href="dashboard.html" class="nav-link">📊 Dashboard</a>
+    <a href="grupos.html" class="nav-link">👥 Grupos</a>
+    <a href="comparar.html" class="nav-link">📋 Comparar</a>
+    <a href="criptografias.html" class="nav-link active">🔐 Criptografias</a>
+    <a href="linguagens.html" class="nav-link">⌨️ Linguagens</a>
+    <a href="cve.html" class="nav-link">🛡️ CVEs</a>
+    <a href="org.html" class="nav-link">🏢 Alvos</a>
+    <a href="anatomia.html" class="nav-link">🧬 Anatomia</a>
+    <a href="ransomware.html" class="nav-link">🏠 Início</a>
+  </div>
+</nav>
+<div class="max-w-7xl mx-auto px-4 py-8">
+  <h1 style="font-size:2rem;font-weight:800;letter-spacing:-.02em;margin-bottom:.25rem" class="fade">
+    🔐 Algoritmos de <span style="color:#ef4444">Criptografia</span>
+  </h1>
+  <p class="mono fade" style="color:#64748b;font-size:.8rem;margin-bottom:1.5rem">
+    Distribuição · complexidade · evolução 2000–2026 · resistência pós-quântica
+  </p>
+
+  <!-- KPI strip -->
+  <div id="kpiStrip" style="display:flex;flex-wrap:wrap;gap:.75rem;margin-bottom:1.5rem" class="fade"></div>
+
+  <!-- Row 1 -->
+  <div class="grid-3 mb-4 fade">
+    <div class="card">
+      <div class="chart-title"><i class="fas fa-chart-pie text-red-400"></i> Distribuição Geral</div>
+      <canvas id="cryptoDistChart" height="230"></canvas>
+    </div>
+    <div class="card">
+      <div class="chart-title"><i class="fas fa-trophy text-orange-400"></i> Top 8 Mais Usados</div>
+      <canvas id="topCryptoChart" height="230"></canvas>
+    </div>
+    <div class="card">
+      <div class="chart-title"><i class="fas fa-shield-alt text-purple-400"></i> Complexidade vs Segurança (0–5)</div>
+      <canvas id="complexityChart" height="230"></canvas>
+      <p class="mono" style="font-size:.65rem;color:#475569;margin-top:.5rem">0=destrutivo (MBR) · 5=pós-quântico (Kyber)</p>
+    </div>
+  </div>
+
+  <!-- Row 2 -->
+  <div class="grid-2 mb-4 fade">
+    <div class="card">
+      <div class="chart-title"><i class="fas fa-chart-area text-blue-400"></i> Evolução de Uso por Algoritmo (2000–2026)</div>
+      <canvas id="evolutionChart" height="250"></canvas>
+      <p class="mono" style="font-size:.65rem;color:#475569;margin-top:.5rem">Acumulado de famílias por ano. Mostra transição RC4/DES → AES → ChaCha20 → PQ.</p>
+    </div>
+    <div class="card">
+      <div class="chart-title"><i class="fas fa-calendar-alt text-green-400"></i> Ano de Criação dos Algoritmos</div>
+      <canvas id="timelineChart" height="250"></canvas>
+    </div>
+  </div>
+
+  <!-- Reference table -->
+  <div class="card fade">
+    <div class="chart-title"><i class="fas fa-book text-sky-400"></i> Tabela de Referência — Algoritmos Criptográficos</div>
+    <div style="overflow-x:auto;max-height:400px;overflow-y:auto">
+      <table>
+        <thead>
+          <tr><th>Algoritmo</th><th>Tipo</th><th>Criado</th><th>Tamanho de chave</th><th>Segurança atual</th><th>Pós-quântico</th><th>Complexidade</th></tr>
+        </thead>
+        <tbody id="algoTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer style="text-align:center;font-size:.7rem;color:#334155;border-top:1px solid #1c2535;padding-top:1.5rem;margin-top:2rem;font-family:'JetBrains Mono',monospace">
+    Fonte: data.json · NIST · RFC · análises acadêmicas de algoritmos criptográficos
+  </footer>
+</div>
+<script>
+Chart.defaults.color = '#94a3b8';
+Chart.defaults.font.family = "'Syne', sans-serif";
+Chart.defaults.borderColor = '#1c2535';
+const COLORS = ['#ef4444','#3b82f6','#22c55e','#eab308','#a855f7','#f97316','#06b6d4','#ec4899','#84cc16','#14b8a6','#f43f5e','#6366f1'];
+
+const ALGO_META = {
+  "AES":        { type:"Simétrica (bloco)",    year:2001, keySize:"128/256 bits",    security:"✅ Alta (NIST padrão)", pq:false, complexity:4 },
+  "RSA":        { type:"Assimétrica",           year:1977, keySize:"2048/4096 bits",  security:"⚠️ Ameaçada pelo Shor", pq:false, complexity:4 },
+  "ChaCha20":   { type:"Simétrica (stream)",    year:2008, keySize:"256 bits",        security:"✅ Alta (TLS 1.3)",     pq:false, complexity:3 },
+  "Salsa20":    { type:"Simétrica (stream)",    year:2005, keySize:"256 bits",        security:"✅ Alta",               pq:false, complexity:3 },
+  "RC4":        { type:"Simétrica (stream)",    year:1987, keySize:"40–2048 bits",    security:"❌ Quebrado (2005+)",   pq:false, complexity:1 },
+  "DES":        { type:"Simétrica (bloco)",     year:1977, keySize:"56 bits",         security:"❌ Quebrado (1999)",    pq:false, complexity:1 },
+  "3DES":       { type:"Simétrica (bloco)",     year:1998, keySize:"168 bits",        security:"⚠️ Fraca (deprecated)", pq:false, complexity:2 },
+  "Blowfish":   { type:"Simétrica (bloco)",     year:1993, keySize:"32–448 bits",     security:"⚠️ Moderada",          pq:false, complexity:2 },
+  "ECC":        { type:"Assimétrica (curva)",   year:1985, keySize:"256 bits equiv.", security:"⚠️ Vulnerável ao Shor", pq:false, complexity:4 },
+  "Kyber":      { type:"Pós-quântico (KEM)",    year:2017, keySize:"1184–1568 bytes", security:"✅ PQ (NIST FIPS 203)", pq:true,  complexity:5 },
+  "MBR overwrite":{ type:"Destrutivo (wiper)", year:2016, keySize:"—",               security:"N/A (wiper)",           pq:false, complexity:0 },
+};
+
+function extractAlgos(crypto) {
+  const u = crypto.toUpperCase();
+  const found = [];
+  if(u.includes('AES')) found.push('AES');
+  if(u.includes('RSA')) found.push('RSA');
+  if(u.includes('CHACHA20')) found.push('ChaCha20');
+  if(u.includes('SALSA20')) found.push('Salsa20');
+  if(u.includes('RC4')) found.push('RC4');
+  if(u.includes('3DES')) found.push('3DES');
+  else if(u.includes('DES')) found.push('DES');
+  if(u.includes('BLOWFISH')) found.push('Blowfish');
+  if(u.includes('ECC')) found.push('ECC');
+  if(u.includes('KYBER')) found.push('Kyber');
+  if(u.includes('MBR')) found.push('MBR overwrite');
+  return found.length ? found : ['Outro'];
+}
+
+fetch('data.json').then(r=>r.json()).then(json=>{
+  const families = json.families;
+  const algoCount = {};
+  families.forEach(f=>{ extractAlgos(f.crypto).forEach(a=>{ algoCount[a]=(algoCount[a]||0)+1; }); });
+  const sorted = Object.entries(algoCount).sort((a,b)=>b[1]-a[1]);
+
+  // KPI
+  const pqCount = families.filter(f=>f.crypto.toUpperCase().includes('KYBER')||f.crypto.toUpperCase().includes('PQ')).length;
+  const aesCount = algoCount['AES']||0;
+  const rsaCount = algoCount['RSA']||0;
+  document.getElementById('kpiStrip').innerHTML = [
+    ['AES', `${aesCount} famílias`, '#ef4444'],
+    ['RSA', `${rsaCount} famílias`, '#3b82f6'],
+    ['ChaCha20', `${algoCount['ChaCha20']||0} famílias`, '#22c55e'],
+    ['Pós-Quântico', `${pqCount} famílias`, '#a855f7'],
+    ['Algoritmos únicos', sorted.length, '#f59e0b'],
+  ].map(([val,label,col])=>`
+    <div style="background:var(--c-surface);border:1px solid var(--c-border);border-radius:10px;padding:.75rem 1.25rem">
+      <div style="font-size:1.1rem;font-weight:800;color:${col}">${val}</div>
+      <div class="mono" style="font-size:.68rem;color:#475569">${label}</div>
+    </div>`).join('');
+
+  // Pie
+  new Chart(document.getElementById('cryptoDistChart'), {
+    type:'pie',
+    data:{ labels:sorted.map(e=>e[0]), datasets:[{ data:sorted.map(e=>e[1]), backgroundColor:COLORS, borderWidth:0 }] },
+    options:{ responsive:true, plugins:{ legend:{ position:'right', labels:{font:{size:10},boxWidth:12} } } }
+  });
+
+  // Top 8 bar
+  const top8 = sorted.slice(0,8);
+  new Chart(document.getElementById('topCryptoChart'), {
+    type:'bar',
+    data:{ labels:top8.map(e=>e[0]), datasets:[{ label:'Famílias', data:top8.map(e=>e[1]), backgroundColor:'#f97316', borderRadius:4 }] },
+    options:{ indexAxis:'y', responsive:true, plugins:{legend:{display:false}}, scales:{x:{ticks:{font:{size:10}}},y:{ticks:{font:{size:10}}}} }
+  });
+
+  // Complexity
+  const complexAlgos = sorted.filter(e=>ALGO_META[e[0]]?.complexity!==undefined).slice(0,10);
+  new Chart(document.getElementById('complexityChart'), {
+    type:'bar',
+    data:{ labels:complexAlgos.map(e=>e[0]), datasets:[{
+      label:'Complexidade (0–5)', data:complexAlgos.map(e=>ALGO_META[e[0]].complexity),
+      backgroundColor:complexAlgos.map(e=>ALGO_META[e[0]].pq?'#a855f7':ALGO_META[e[0]].complexity>=4?'#22c55e':ALGO_META[e[0]].complexity>=3?'#eab308':'#ef4444'),
+      borderRadius:4
+    }] },
+    options:{ responsive:true, plugins:{legend:{display:false}}, scales:{y:{max:5.5,ticks:{stepSize:1}},x:{ticks:{font:{size:10}}}} }
+  });
+
+  // Evolution line
+  const TRACK = ['AES','RSA','ChaCha20','Salsa20','RC4','DES'];
+  const ECOLS = ['#ef4444','#3b82f6','#22c55e','#eab308','#a855f7','#f97316'];
+  const yrs = Array.from({length:27},(_,i)=>2000+i);
+  new Chart(document.getElementById('evolutionChart'), {
+    type:'line',
+    data:{ labels:yrs, datasets: TRACK.map((algo,i)=>({
+      label:algo,
+      data:yrs.map(yr=>families.filter(f=>extractAlgos(f.crypto).includes(algo)&&f.year<=yr).length),
+      borderColor:ECOLS[i], tension:.2, fill:false
+    })) },
+    options:{ responsive:true, plugins:{ legend:{ position:'top', labels:{font:{size:10},boxWidth:12} } }, scales:{ y:{title:{display:true,text:'Famílias acumuladas',color:'#64748b'}}, x:{ticks:{font:{size:10},stepSize:2}} } }
+  });
+
+  // Timeline scatter
+  const timeAlgos = sorted.filter(e=>ALGO_META[e[0]]?.year>0).sort((a,b)=>ALGO_META[a[0]].year-ALGO_META[b[0]].year);
+  new Chart(document.getElementById('timelineChart'), {
+    type:'scatter',
+    data:{ datasets:[{ label:'Algoritmos', data:timeAlgos.map((e,i)=>({x:ALGO_META[e[0]].year,y:i})), pointRadius:8, pointHoverRadius:12, pointBackgroundColor:timeAlgos.map(e=>ALGO_META[e[0]].pq?'#a855f7':'#22c55e') }] },
+    options:{ responsive:true, scales:{ x:{title:{display:true,text:'Ano de criação',color:'#64748b'},ticks:{font:{size:10}}}, y:{ticks:{stepSize:1,callback:v=>timeAlgos[v]?.[0]||'',font:{size:10}}} }, plugins:{ legend:{display:false}, tooltip:{callbacks:{label:ctx=>`${timeAlgos[ctx.parsed.y][0]} (${ctx.parsed.x})`}} } }
+  });
+
+  // Algo reference table
+  const tbody = document.getElementById('algoTable');
+  sorted.forEach(([name])=>{
+    const m = ALGO_META[name]||{type:'—',year:'—',keySize:'—',security:'—',pq:false,complexity:'—'};
+    const pqBadge = m.pq ? '<span class="badge" style="background:rgba(168,85,247,.15);color:#a855f7">✅ SIM</span>' : '<span class="badge" style="background:rgba(71,85,105,.1);color:#475569">❌ NÃO</span>';
+    const compColor = m.complexity>=4?'#22c55e':m.complexity>=3?'#eab308':m.complexity>=2?'#f97316':'#ef4444';
+    tbody.innerHTML += `<tr>
+      <td style="font-weight:700;font-family:'JetBrains Mono',monospace">${name}</td>
+      <td style="color:#94a3b8">${m.type}</td>
+      <td class="mono" style="color:#64748b">${m.year}</td>
+      <td class="mono" style="font-size:.72rem;color:#94a3b8">${m.keySize}</td>
+      <td style="font-size:.72rem">${m.security}</td>
+      <td>${pqBadge}</td>
+      <td><span style="color:${compColor};font-weight:700">${m.complexity}/5</span></td>
+    </tr>`;
+  });
+});
+</script>
+</body>
+</html>

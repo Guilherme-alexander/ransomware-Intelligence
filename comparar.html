@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Comparar Famílias — Ransomware Intelligence</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root { --c-bg:#080c14; --c-surface:#0e1420; --c-border:#1c2535; --c-accent:#0ea5e9; }
+    body { background: var(--c-bg); color: #e2e8f0; font-family: 'Syne', sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+
+    nav { background: rgba(14,20,32,.95); border-bottom: 1px solid var(--c-border); backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 100; }
+    .nav-link { color: #64748b; font-size: .8rem; font-weight: 600; letter-spacing: .05em; padding: .5rem .75rem; border-radius: 6px; transition: all .2s; text-decoration: none; }
+    .nav-link:hover { color: var(--c-accent); background: rgba(14,165,233,.08); }
+    .nav-link.active { color: var(--c-accent); background: rgba(14,165,233,.12); }
+
+    /* Filters */
+    .filter-bar { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: 12px; padding: 1rem 1.25rem; }
+    input, select { background: #080c14; border: 1px solid var(--c-border); color: #e2e8f0; border-radius: 8px; padding: .5rem .75rem; font-size: .8rem; font-family: inherit; outline: none; transition: border-color .2s; }
+    input:focus, select:focus { border-color: var(--c-accent); }
+    input::placeholder { color: #475569; }
+    select option { background: #0e1420; }
+
+    /* Table */
+    .tbl-wrap { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: 12px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; font-size: .78rem; }
+    thead th { background: #0a0f1a; padding: .75rem 1rem; text-align: left; font-size: .68rem; letter-spacing: .08em; color: #64748b; text-transform: uppercase; cursor: pointer; user-select: none; white-space: nowrap; border-bottom: 1px solid var(--c-border); transition: color .2s; }
+    thead th:hover { color: var(--c-accent); }
+    thead th.sorted-asc::after { content: ' ↑'; color: var(--c-accent); }
+    thead th.sorted-desc::after { content: ' ↓'; color: var(--c-accent); }
+    tbody tr { border-bottom: 1px solid rgba(28,37,53,.6); transition: background .15s; }
+    tbody tr:hover { background: rgba(14,165,233,.04); }
+    tbody td { padding: .65rem 1rem; vertical-align: middle; }
+    tbody td:first-child { font-weight: 700; color: #e2e8f0; }
+
+    /* Badges */
+    .badge { display: inline-block; font-size: .6rem; padding: .15rem .4rem; border-radius: 4px; font-weight: 700; font-family: 'JetBrains Mono', monospace; white-space: nowrap; }
+    .b-ativo     { background: rgba(239,68,68,.15); color: #ef4444; }
+    .b-desmantelado { background: rgba(71,85,105,.12); color: #475569; }
+    .b-descontinuado { background: rgba(245,158,11,.1); color: #f59e0b; }
+    .b-desativado { background: rgba(30,41,59,.5); color: #334155; }
+    .b-yes { background: rgba(239,68,68,.12); color: #ef4444; }
+    .b-no  { background: rgba(71,85,105,.1); color: #475569; }
+    .b-ok  { background: rgba(34,197,94,.12); color: #22c55e; }
+    .b-lang { background: rgba(14,165,233,.1); color: #38bdf8; }
+    .b-sanc { background: rgba(245,158,11,.1); color: #f59e0b; }
+
+    /* Revenue bar */
+    .rev-bar { height: 4px; border-radius: 2px; background: linear-gradient(90deg, #22c55e, #0ea5e9); margin-top: 3px; }
+
+    /* Stats pills */
+    .stats-row { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }
+    .stat-pill { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: 8px; padding: .4rem .8rem; font-size: .75rem; display: flex; gap: .5rem; align-items: center; }
+    .stat-pill span { color: #94a3b8; } .stat-pill strong { color: #e2e8f0; }
+
+    /* Detail panel */
+    #detailPanel { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: 12px; padding: 1.5rem; margin-top: 1rem; display: none; }
+    #detailPanel.open { display: block; animation: fadeIn .3s ease; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+
+    ::-webkit-scrollbar { width: 4px; height: 4px; } ::-webkit-scrollbar-track { background: var(--c-bg); } ::-webkit-scrollbar-thumb { background: var(--c-border); border-radius: 2px; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="max-w-7xl mx-auto px-4 py-2 flex flex-wrap gap-1 items-center">
+    <span class="mono text-xs text-blue-400 font-bold mr-4">⬡ RWI</span>
+    <a href="dashboard.html" class="nav-link">📊 Dashboard</a>
+    <a href="grupos.html" class="nav-link">👥 Grupos</a>
+    <a href="comparar.html" class="nav-link active">📋 Comparar</a>
+    <a href="criptografias.html" class="nav-link">🔐 Criptografias</a>
+    <a href="linguagens.html" class="nav-link">⌨️ Linguagens</a>
+    <a href="cve.html" class="nav-link">🛡️ CVEs</a>
+    <a href="org.html" class="nav-link">🏢 Alvos</a>
+    <a href="anatomia.html" class="nav-link">🧬 Anatomia</a>
+    <a href="ransomware.html" class="nav-link">🏠 Início</a>
+  </div>
+</nav>
+
+<div class="max-w-7xl mx-auto px-4 py-8">
+
+  <h1 style="font-size:2rem;font-weight:800;letter-spacing:-.02em;margin-bottom:.25rem">
+    📋 Comparar <span style="color:#0ea5e9">Famílias</span>
+  </h1>
+  <p class="mono" style="color:#64748b;font-size:.8rem;margin-bottom:1.5rem">
+    53 famílias · Clique nos cabeçalhos para ordenar · Clique em uma linha para detalhes
+  </p>
+
+  <!-- Stats pills (dynamic) -->
+  <div class="stats-row" id="statsPills"></div>
+
+  <!-- Filters -->
+  <div class="filter-bar mb-4">
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:.75rem;align-items:end;" class="filter-grid">
+      <div>
+        <label style="font-size:.7rem;color:#64748b;display:block;margin-bottom:.35rem">🔍 BUSCA</label>
+        <input type="text" id="search" placeholder="Nome, linguagem, criptografia, país, vetor..." style="width:100%">
+      </div>
+      <div>
+        <label style="font-size:.7rem;color:#64748b;display:block;margin-bottom:.35rem">STATUS</label>
+        <select id="filterStatus" style="width:100%">
+          <option value="">Todos</option>
+          <option value="Ativo">🔴 Ativo</option>
+          <option value="Desmantelado">⚫ Desmantelado</option>
+          <option value="Descontinuado">🟡 Descontinuado</option>
+          <option value="Desativado">⬛ Desativado</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:.7rem;color:#64748b;display:block;margin-bottom:.35rem">MODO</label>
+        <select id="filterMode" style="width:100%">
+          <option value="">Todos</option>
+          <option value="RaaS">RaaS</option>
+          <option value="Double Ext.">Double Ext.</option>
+          <option value="Big Game">Big Game</option>
+          <option value="Worm">Worm</option>
+          <option value="Destrutivo">Destrutivo</option>
+          <option value="Crypto">Crypto</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:.7rem;color:#64748b;display:block;margin-bottom:.35rem">DUPLA EXTORSÃO</label>
+        <select id="filterDoubleExt" style="width:100%">
+          <option value="">Todos</option>
+          <option value="true">Sim</option>
+          <option value="false">Não</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:.7rem;color:#64748b;display:block;margin-bottom:.35rem">PERÍODO</label>
+        <select id="filterEra" style="width:100%">
+          <option value="">Todos os anos</option>
+          <option value="1989-2012">1989–2012 (Pioneiros)</option>
+          <option value="2013-2016">2013–2016 (Crypto+BTC)</option>
+          <option value="2017-2018">2017–2018 (Worm)</option>
+          <option value="2019-2022">2019–2022 (RaaS Big)</option>
+          <option value="2023-2026">2023–2026 (Moderno)</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-top:.75rem;display:flex;gap:.5rem;align-items:center;font-size:.75rem;color:#64748b">
+      <span id="resultCount" class="mono">—</span>
+      <button onclick="clearFilters()" style="margin-left:auto;background:rgba(14,165,233,.1);color:#38bdf8;border:none;border-radius:6px;padding:.3rem .75rem;font-size:.7rem;cursor:pointer;font-family:inherit">Limpar filtros</button>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="tbl-wrap" style="overflow-x:auto">
+    <table>
+      <thead>
+        <tr>
+          <th onclick="sortBy('name')" class="sortable">Família</th>
+          <th onclick="sortBy('year')">Ano</th>
+          <th onclick="sortBy('lang')">Linguagem</th>
+          <th onclick="sortBy('crypto')">Criptografia</th>
+          <th onclick="sortBy('mode')">Modo</th>
+          <th onclick="sortBy('revenueM')" title="Arrecadação estimada">Rev. (US$M)</th>
+          <th onclick="sortBy('ransom_avg_k')" title="Média de pedido de resgate">Resgate Médio</th>
+          <th onclick="sortBy('estimated_victims')">Vítimas est.</th>
+          <th onclick="sortBy('country')">Origem</th>
+          <th onclick="sortBy('status')">Status</th>
+          <th onclick="sortBy('double_extortion')" title="Dupla extorsão">2x Ext.</th>
+          <th onclick="sortBy('sanctions')" title="Sancionado pelo OFAC">Sanção</th>
+          <th onclick="sortBy('decryptor_available')" title="Decryptor público disponível">Decryptor</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+  <!-- Detail Panel -->
+  <div id="detailPanel">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem">
+      <h2 id="detailName" style="font-size:1.4rem;font-weight:800"></h2>
+      <button onclick="closeDetail()" style="background:none;border:none;color:#64748b;cursor:pointer;font-size:1.2rem;">✕</button>
+    </div>
+    <div id="detailContent" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem"></div>
+  </div>
+
+  <footer style="text-align:center;font-size:.7rem;color:#334155;border-top:1px solid #1c2535;padding-top:1.5rem;margin-top:2rem;font-family:'JetBrains Mono',monospace">
+    Fontes: NVD · CISA · MITRE ATT&CK · Chainalysis · Group-IB · Coveware · FBI IC3
+  </footer>
+</div>
+
+<script>
+let allData = [];
+let sortCol = 'revenueM';
+let sortDir = -1; // -1 = desc, 1 = asc
+
+const MAX_REV = 2000; // GandCrab max for bar scaling
+
+function badgeStatus(s) {
+  if (s.includes('Ativo')) return `<span class="badge b-ativo">${s}</span>`;
+  if (s.includes('Desmantelado')) return `<span class="badge b-desmantelado">${s}</span>`;
+  if (s.includes('Descontinuado')) return `<span class="badge b-descontinuado">${s}</span>`;
+  return `<span class="badge b-desativado">${s}</span>`;
+}
+
+function fmtVictims(n) {
+  if (!n) return '—';
+  if (n >= 1000000) return (n/1000000).toFixed(1)+'M';
+  if (n >= 1000) return (n/1000).toFixed(0)+'k';
+  return n;
+}
+
+function fmtCountry(c) {
+  return c.split(' ')[0] === 'Desconhecido' ? '❓ Desconhecido' :
+         c.includes('Rússia') ? '🇷🇺 Rússia' :
+         c.includes('Coreia') ? '🇰🇵 Coreia Norte' :
+         c.includes('Romênia') ? '🇷🇴 Romênia' :
+         c.includes('Irã') ? '🇮🇷 Irã' :
+         c.includes('China') ? '🇨🇳 China' :
+         c.includes('Brasil') ? '🇧🇷 Brasil' :
+         c.includes('Ucrânia') ? '🇺🇦 Ucrânia' :
+         c.includes('Europa') ? '🇪🇺 Europa Oriental' : c.split('(')[0].trim();
+}
+
+function renderTable(data) {
+  const tbody = document.getElementById('tableBody');
+  document.getElementById('resultCount').textContent = `${data.length} famílias exibidas`;
+
+  if (!data.length) {
+    tbody.innerHTML = `<tr><td colspan="13" style="text-align:center;padding:2rem;color:#475569">Nenhum resultado encontrado.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = data.map((f, idx) => {
+    const revPct = Math.min(100, (f.revenueM / MAX_REV) * 100);
+    return `
+    <tr onclick="showDetail(${idx})" style="cursor:pointer" data-idx="${idx}">
+      <td style="min-width:160px">
+        ${f.name.replace(' (2026)','').replace(' (2026 var)','').replace(' NextGen','')}
+        ${f.geopolitical_link === 'State-sponsored' ? '<span class="badge" style="background:rgba(239,68,68,.1);color:#f87171;margin-left:4px">APT</span>' : ''}
+      </td>
+      <td class="mono" style="color:#94a3b8">${f.year}</td>
+      <td><span class="badge b-lang">${f.lang.split('/')[0]}</span></td>
+      <td style="max-width:160px;font-size:.7rem;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${f.crypto}">${f.crypto}</td>
+      <td><span class="mono" style="font-size:.72rem;color:#94a3b8">${f.mode}</span></td>
+      <td>
+        <div class="mono" style="font-weight:700;color:${f.revenueM>=200?'#22c55e':f.revenueM>=50?'#f59e0b':'#94a3b8'}">$${f.revenueM}M</div>
+        <div class="rev-bar" style="width:${Math.max(4,revPct)}%"></div>
+      </td>
+      <td class="mono" style="font-size:.72rem;color:#94a3b8">${f.ransom_avg_k ? '$'+f.ransom_avg_k+'k' : '—'}</td>
+      <td class="mono" style="font-size:.72rem;color:#94a3b8">${fmtVictims(f.estimated_victims)}</td>
+      <td style="font-size:.72rem;white-space:nowrap">${fmtCountry(f.country)}</td>
+      <td>${badgeStatus(f.status)}</td>
+      <td>${f.double_extortion ? '<span class="badge b-yes">SIM</span>' : '<span class="badge b-no">NÃO</span>'}</td>
+      <td>${f.sanctions ? '<span class="badge b-sanc">OFAC</span>' : '<span class="badge b-no">—</span>'}</td>
+      <td>${f.decryptor_available ? '<span class="badge b-ok">✓ SIM</span>' : '<span class="badge b-no">NÃO</span>'}</td>
+    </tr>`;
+  }).join('');
+
+  // Store data ref for detail lookup
+  window._tableData = data;
+}
+
+function showDetail(idx) {
+  const f = window._tableData[idx];
+  document.getElementById('detailName').textContent = f.name;
+  document.getElementById('detailPanel').className = 'open';
+  document.getElementById('detailPanel').style.display = 'block';
+
+  document.getElementById('detailContent').innerHTML = `
+    <div>
+      <h3 style="font-size:.7rem;color:#64748b;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.75rem">IDENTIFICAÇÃO</h3>
+      ${row('Ano', f.year)} ${row('Origem', fmtCountry(f.country))}
+      ${row('Modo', f.mode)} ${row('Status', badgeStatus(f.status))}
+      ${row('Linguagem', `<span class="badge b-lang">${f.lang}</span>`)}
+      ${row('Criptografia', `<span class="mono" style="font-size:.75rem">${f.crypto}</span>`)}
+      ${row('Moeda', f.coin || '—')}
+    </div>
+    <div>
+      <h3 style="font-size:.7rem;color:#64748b;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.75rem">IMPACTO FINANCEIRO</h3>
+      ${row('Arrecadação total', `<strong style="color:#22c55e">US$ ${f.revenueM}M</strong>`)}
+      ${row('Resgate médio', f.ransom_avg_k ? `US$ ${f.ransom_avg_k}k` : '—')}
+      ${row('Vítimas estimadas', fmtVictims(f.estimated_victims))}
+      ${row('Ano de pico', f.peak_year || '—')}
+      ${row('Afiliados (RaaS)', f.affiliate_count > 0 ? f.affiliate_count : '—')}
+    </div>
+    <div>
+      <h3 style="font-size:.7rem;color:#64748b;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.75rem">TÉCNICO</h3>
+      ${row('Vetores', (f.vectors||[]).join(', '))}
+      ${row('Setores alvo', (f.sectors||[]).join(', '))}
+      ${row('Vulnerabilidade', f.vulnerability || '—')}
+      ${row('Dupla extorsão', f.double_extortion ? '<span class="badge b-yes">SIM</span>' : '<span class="badge b-no">NÃO</span>')}
+      ${row('Leak site', f.leak_site ? '<span class="badge b-yes">SIM</span>' : '<span class="badge b-no">NÃO</span>')}
+      ${row('Decryptor público', f.decryptor_available ? '<span class="badge b-ok">Disponível</span>' : '<span class="badge b-no">Não</span>')}
+      ${row('Sanção OFAC', f.sanctions ? '<span class="badge b-sanc">Sancionado</span>' : '—')}
+      ${row('MITRE ATT&CK', (f.ttps||[]).join(', '))}
+    </div>
+    <div>
+      <h3 style="font-size:.7rem;color:#64748b;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.75rem">ATAQUES NOTÓRIOS</h3>
+      ${(f.notable_attacks||[]).map(a=>`<div style="font-size:.75rem;padding:.4rem 0;border-bottom:1px solid #1c2535;color:#94a3b8">▸ ${a}</div>`).join('')}
+      ${f.notes ? `<div style="margin-top:.75rem;padding:.75rem;background:#080c14;border-radius:8px;font-size:.75rem;color:#64748b;line-height:1.6"><i class="fas fa-info-circle" style="color:#38bdf8;margin-right:6px"></i>${f.notes}</div>` : ''}
+    </div>
+  `;
+
+  document.getElementById('detailPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function row(label, value) {
+  return `<div style="display:flex;justify-content:space-between;align-items:center;padding:.35rem 0;border-bottom:1px solid rgba(28,37,53,.5);font-size:.78rem">
+    <span style="color:#475569;white-space:nowrap;margin-right:1rem">${label}</span>
+    <span style="text-align:right">${value}</span>
+  </div>`;
+}
+
+function closeDetail() {
+  document.getElementById('detailPanel').style.display = 'none';
+}
+
+function getFiltered() {
+  const q = document.getElementById('search').value.toLowerCase();
+  const st = document.getElementById('filterStatus').value;
+  const mo = document.getElementById('filterMode').value;
+  const de = document.getElementById('filterDoubleExt').value;
+  const er = document.getElementById('filterEra').value;
+
+  return allData.filter(f => {
+    const txt = [f.name, f.lang, f.crypto, f.country, f.mode, f.coin, ...(f.vectors||[]), ...(f.sectors||[]), f.vulnerability||''].join(' ').toLowerCase();
+    if (q && !txt.includes(q)) return false;
+    if (st && !f.status.includes(st)) return false;
+    if (mo && !f.mode.includes(mo)) return false;
+    if (de !== '' && String(f.double_extortion) !== de) return false;
+    if (er) {
+      const [s, e] = er.split('-').map(Number);
+      if (f.year < s || f.year > e) return false;
+    }
+    return true;
+  }).sort((a, b) => {
+    let va = a[sortCol], vb = b[sortCol];
+    if (typeof va === 'string') va = va.toLowerCase();
+    if (typeof vb === 'string') vb = vb.toLowerCase();
+    if (va === undefined || va === null) va = '';
+    if (vb === undefined || vb === null) vb = '';
+    return va < vb ? sortDir : va > vb ? -sortDir : 0;
+  });
+}
+
+function sortBy(col) {
+  if (sortCol === col) sortDir *= -1;
+  else { sortCol = col; sortDir = col === 'name' || col === 'country' ? 1 : -1; }
+  document.querySelectorAll('thead th').forEach(th => {
+    th.classList.remove('sorted-asc', 'sorted-desc');
+  });
+  event.currentTarget.classList.add(sortDir === 1 ? 'sorted-asc' : 'sorted-desc');
+  renderTable(getFiltered());
+}
+
+function clearFilters() {
+  document.getElementById('search').value = '';
+  document.getElementById('filterStatus').value = '';
+  document.getElementById('filterMode').value = '';
+  document.getElementById('filterDoubleExt').value = '';
+  document.getElementById('filterEra').value = '';
+  renderTable(getFiltered());
+}
+
+['search','filterStatus','filterMode','filterDoubleExt','filterEra'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => renderTable(getFiltered()));
+  document.getElementById(id).addEventListener('change', () => renderTable(getFiltered()));
+});
+
+fetch('data.json').then(r => r.json()).then(json => {
+  allData = json.families;
+
+  // Stats pills
+  const ativas = allData.filter(f => f.status.includes('Ativo')).length;
+  const sanc = allData.filter(f => f.sanctions).length;
+  const dext = allData.filter(f => f.double_extortion).length;
+  const totalRev = allData.reduce((s,f) => s+(f.revenueM||0), 0);
+  const totalVic = allData.reduce((s,f) => s+(f.estimated_victims||0), 0);
+
+  document.getElementById('statsPills').innerHTML = [
+    ['Total', allData.length, '🗂'],
+    ['Ativos', ativas, '🔴'],
+    [`Rev. US$${Math.round(totalRev/1000*10)/10}B`, '', '💰'],
+    [`${(totalVic/1000000).toFixed(1)}M vítimas`, '', '👥'],
+    [`${dext} dupla extorsão`, '', '📤'],
+    [`${sanc} sancionados`, '', '⚠️'],
+  ].map(([label, val, icon]) => `
+    <div class="stat-pill"><span>${icon}</span><span>${label}${val?'':''}</span>${val?`<strong>${val}</strong>`:''}</div>`).join('');
+
+  renderTable(getFiltered());
+});
+</script>
+</body>
+</html>

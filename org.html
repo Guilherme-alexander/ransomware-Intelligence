@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alvos & Organizações — Ransomware Intelligence</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root { --c-bg:#080c14; --c-surface:#0e1420; --c-border:#1c2535; --c-accent:#0ea5e9; }
+    body { background: var(--c-bg); color: #e2e8f0; font-family: 'Syne', sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    nav { background: rgba(14,20,32,.95); border-bottom: 1px solid var(--c-border); backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 100; }
+    .nav-link { color: #64748b; font-size: .8rem; font-weight: 600; letter-spacing: .05em; padding: .5rem .75rem; border-radius: 6px; transition: all .2s; text-decoration: none; }
+    .nav-link:hover { color: var(--c-accent); background: rgba(14,165,233,.08); }
+    .nav-link.active { color: var(--c-accent); background: rgba(14,165,233,.12); }
+    .card { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: 12px; padding: 1.5rem; }
+    .chart-title { font-size: .78rem; font-weight: 700; letter-spacing: .08em; color: #64748b; text-transform: uppercase; margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+    @media(max-width:900px) { .grid-2,.grid-3 { grid-template-columns: 1fr; } }
+    table { width: 100%; border-collapse: collapse; font-size: .78rem; }
+    thead th { background: #080c14; padding: .65rem 1rem; text-align: left; font-size: .68rem; letter-spacing: .08em; color: #64748b; text-transform: uppercase; border-bottom: 1px solid var(--c-border); }
+    tbody tr { border-bottom: 1px solid rgba(28,37,53,.5); }
+    tbody tr:hover { background: rgba(14,165,233,.04); }
+    tbody td { padding: .55rem 1rem; vertical-align: middle; }
+    .badge { font-size: .6rem; padding: .15rem .4rem; border-radius: 4px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+    ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: var(--c-bg); } ::-webkit-scrollbar-thumb { background: var(--c-border); border-radius: 2px; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none} }
+    .fade { animation: fadeIn .4s ease both; }
+  </style>
+</head>
+<body>
+<nav>
+  <div class="max-w-7xl mx-auto px-4 py-2 flex flex-wrap gap-1 items-center">
+    <span class="mono text-xs text-blue-400 font-bold mr-4">⬡ RWI</span>
+    <a href="dashboard.html" class="nav-link">📊 Dashboard</a>
+    <a href="grupos.html" class="nav-link">👥 Grupos</a>
+    <a href="comparar.html" class="nav-link">📋 Comparar</a>
+    <a href="criptografias.html" class="nav-link">🔐 Criptografias</a>
+    <a href="linguagens.html" class="nav-link">⌨️ Linguagens</a>
+    <a href="cve.html" class="nav-link">🛡️ CVEs</a>
+    <a href="org.html" class="nav-link active">🏢 Alvos</a>
+    <a href="anatomia.html" class="nav-link">🧬 Anatomia</a>
+    <a href="ransomware.html" class="nav-link">🏠 Início</a>
+  </div>
+</nav>
+<div class="max-w-7xl mx-auto px-4 py-8">
+  <h1 style="font-size:2rem;font-weight:800;letter-spacing:-.02em;margin-bottom:.25rem" class="fade">
+    🏢 Alvos & <span style="color:#06b6d4">Organizações</span>
+  </h1>
+  <p class="mono fade" style="color:#64748b;font-size:.8rem;margin-bottom:1.5rem">
+    Países atacantes · países alvos · setores · organizações · evolução do impacto (2000–2026)
+  </p>
+
+  <!-- KPI strip -->
+  <div id="kpiStrip" style="display:flex;flex-wrap:wrap;gap:.75rem;margin-bottom:1.5rem" class="fade"></div>
+
+  <!-- Row 1 -->
+  <div class="grid-2 mb-4 fade">
+    <div class="card">
+      <div class="chart-title"><i class="fas fa-globe text-red-400"></i> Países de Origem (Atacantes)</div>
+      <canvas id="attackerCountryChart" height="250"></canvas>
+    </div>
+    <div class="card">
+      <div class="chart-title"><i class="fas fa-crosshairs text-orange-400"></i> Países Mais Atacados (estimativa)</div>
+      <canvas id="targetCountryChart" height="250"></canvas>
+    </div>
+  </div>
+
+  <!-- Row 2 -->
+  <div class="grid-2 mb-4 fade">
+    <div class="card">
+      <div class="chart-title"><i class="fas fa-hospital text-green-400"></i> Setores Mais Atacados</div>
+      <canvas id="sectorChart" height="260"></canvas>
+      <p class="mono" style="font-size:.65rem;color:#475569;margin-top:.5rem">Extraído do campo sectors[] do data.json — contagem de famílias que atacam cada setor.</p>
+    </div>
+    <div class="card">
+      <div class="chart-title"><i class="fas fa-building text-purple-400"></i> Tipos de Organização Alvo</div>
+      <canvas id="orgTypeChart" height="260"></canvas>
+    </div>
+  </div>
+
+  <!-- Row 3 -->
+  <div class="grid-2 mb-4 fade">
+    <div class="card">
+      <div class="chart-title"><i class="fas fa-chart-area text-red-400"></i> Evolução do Impacto por Ano (1=Baixo → 5=Catastrófico)</div>
+      <canvas id="impactTimelineChart" height="230"></canvas>
+      <p class="mono" style="font-size:.65rem;color:#475569;margin-top:.5rem">Média do campo impact classificado por gravidade em cada ano.</p>
+    </div>
+    <div class="card">
+      <div class="chart-title"><i class="fas fa-map-pin text-yellow-400"></i> Arrecadação por País de Origem</div>
+      <canvas id="revenueByCountryChart" height="230"></canvas>
+    </div>
+  </div>
+
+  <!-- Country summary table -->
+  <div class="card mb-4 fade">
+    <div class="chart-title"><i class="fas fa-flag text-sky-400"></i> Resumo por País de Origem</div>
+    <div style="overflow-x:auto;max-height:350px;overflow-y:auto">
+      <table>
+        <thead>
+          <tr><th>País</th><th>Famílias</th><th>Arrecadação Total</th><th>Vítimas est.</th><th>Sancionados</th><th>Grupos notórios</th></tr>
+        </thead>
+        <tbody id="countryTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Sector deep dive -->
+  <div class="card fade">
+    <div class="chart-title"><i class="fas fa-industry text-emerald-400"></i> Famílias por Setor — Detalhamento</div>
+    <div id="sectorDetail" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.75rem"></div>
+  </div>
+
+  <footer style="text-align:center;font-size:.7rem;color:#334155;border-top:1px solid #1c2535;padding-top:1.5rem;margin-top:2rem;font-family:'JetBrains Mono',monospace">
+    Fontes: data.json · Chainalysis · CISA · Group-IB · Coveware
+  </footer>
+</div>
+<script>
+Chart.defaults.color = '#94a3b8';
+Chart.defaults.font.family = "'Syne', sans-serif";
+Chart.defaults.borderColor = '#1c2535';
+const COLORS = ['#ef4444','#f97316','#eab308','#22c55e','#0ea5e9','#a855f7','#06b6d4','#ec4899','#84cc16','#14b8a6'];
+
+const impactScore = { 'Baixo':1, 'Médio':2, 'Alto':3, 'Muito alto':4, 'Crítico':4.5, 'Catastrófico':5 };
+
+function normalizeCountry(c) {
+  if (c.includes('Rússia')) return 'Rússia';
+  if (c.includes('Coreia')) return 'Coreia do Norte';
+  if (c.includes('Romênia')) return 'Romênia';
+  if (c.includes('Irã')) return 'Irã';
+  if (c.includes('China')) return 'China';
+  if (c.includes('Brasil')) return 'Brasil (suspeita)';
+  if (c.includes('Europa')) return 'Europa Oriental';
+  if (c.includes('Ucrânia')) return 'Ucrânia';
+  return 'Desconhecido';
+}
+
+fetch('data.json').then(r=>r.json()).then(json=>{
+  const data = json.families;
+
+  /* KPI strip */
+  const totalVic = data.reduce((s,f)=>s+(f.estimated_victims||0),0);
+  const sectors = {}; data.forEach(f=>(f.sectors||[]).forEach(s=>{ sectors[s]=(sectors[s]||0)+1; }));
+  const topSector = Object.entries(sectors).sort((a,b)=>b[1]-a[1])[0]?.[0];
+  const countryMap = {}; data.forEach(f=>{ const c=normalizeCountry(f.country); countryMap[c]=(countryMap[c]||0)+1; });
+  const topCountry = Object.entries(countryMap).sort((a,b)=>b[1]-a[1])[0]?.[0];
+  const cats = {}; data.forEach(f=>{ const c=normalizeCountry(f.country); cats[c]=(cats[c]||{families:0,rev:0,vic:0,sanc:0,names:[]}); cats[c].families++; cats[c].rev+=(f.revenueM||0); cats[c].vic+=(f.estimated_victims||0); if(f.sanctions)cats[c].sanc++; cats[c].names.push(f.name.split(' ')[0]); });
+
+  document.getElementById('kpiStrip').innerHTML = [
+    ['Países de origem', Object.keys(cats).length, '#0ea5e9'],
+    ['Setor mais atacado', topSector, '#ef4444'],
+    ['País mais ativo', topCountry, '#f97316'],
+    [`${(totalVic/1e6).toFixed(1)}M`, 'vítimas estimadas', '#22c55e'],
+    [Object.keys(sectors).length, 'setores impactados', '#a855f7'],
+  ].map(([val,label,color])=>`
+    <div style="background:var(--c-surface);border:1px solid var(--c-border);border-radius:10px;padding:.75rem 1.25rem;display:flex;flex-direction:column;gap:.15rem">
+      <div style="font-size:1.1rem;font-weight:800;color:${color}">${val}</div>
+      <div style="font-size:.68rem;color:#475569;font-family:'JetBrains Mono',monospace">${label}</div>
+    </div>`).join('');
+
+  /* Attacker countries pie */
+  const cSorted = Object.entries(countryMap).sort((a,b)=>b[1]-a[1]);
+  new Chart(document.getElementById('attackerCountryChart'), {
+    type: 'pie',
+    data: { labels: cSorted.map(e=>e[0]+'  ('+e[1]+')'), datasets:[{ data:cSorted.map(e=>e[1]), backgroundColor:COLORS, borderWidth:0 }] },
+    options: { responsive:true, plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:12}}} }
+  });
+
+  /* Target countries bar (static research data) */
+  const targetData = { 'EUA':65, 'Reino Unido':28, 'Canadá':20, 'Alemanha':18, 'França':15, 'Austrália':14, 'Brasil':11, 'Japão':10, 'Itália':9, 'Índia':8 };
+  new Chart(document.getElementById('targetCountryChart'), {
+    type: 'bar',
+    data: { labels:Object.keys(targetData), datasets:[{ label:'Ataques estimados', data:Object.values(targetData), backgroundColor:'#f97316', borderRadius:4 }] },
+    options: { indexAxis:'y', responsive:true, plugins:{legend:{display:false}}, scales:{x:{ticks:{font:{size:10}}},y:{ticks:{font:{size:10}}}} }
+  });
+
+  /* Sectors bar — from data.json */
+  const secSorted = Object.entries(sectors).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  new Chart(document.getElementById('sectorChart'), {
+    type: 'bar',
+    data: { labels:secSorted.map(e=>e[0]), datasets:[{ label:'Famílias que atacam', data:secSorted.map(e=>e[1]), backgroundColor:'#22c55e', borderRadius:4 }] },
+    options: { indexAxis:'y', responsive:true, plugins:{legend:{display:false}}, scales:{x:{ticks:{font:{size:10}}},y:{ticks:{font:{size:10}}}} }
+  });
+
+  /* Org type pie (research-based) */
+  const orgData = { 'Grandes Empresas':42, 'Empresas Médias':55, 'Pequenas Empresas':18, 'Hospitais':28, 'Universidades':20, 'Órgãos Governamentais':25, 'Infraestrutura Crítica':22 };
+  new Chart(document.getElementById('orgTypeChart'), {
+    type: 'pie',
+    data: { labels:Object.keys(orgData), datasets:[{ data:Object.values(orgData), backgroundColor:COLORS, borderWidth:0 }] },
+    options: { responsive:true, plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:12}}} }
+  });
+
+  /* Impact timeline */
+  const impByYear = {};
+  data.forEach(f=>{ const s=impactScore[f.impact]||2; if(!impByYear[f.year]) impByYear[f.year]=[]; impByYear[f.year].push(s); });
+  const yrs = Object.keys(impByYear).sort().map(Number);
+  const impVals = yrs.map(y=>{ const arr=impByYear[y]; return +(arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(2); });
+  new Chart(document.getElementById('impactTimelineChart'), {
+    type:'line',
+    data:{ labels:yrs, datasets:[{ label:'Nível de Impacto', data:impVals, borderColor:'#ef4444', fill:true, backgroundColor:'rgba(239,68,68,.08)', tension:.3 }] },
+    options:{ responsive:true, plugins:{legend:{display:false}}, scales:{y:{min:0,max:6,ticks:{stepSize:1,callback:v=>['','Baixo','Médio','Alto','Muito Alto','Crítico','Catastrófico'][v]||v},title:{display:true,text:'Impacto',color:'#64748b'}},x:{ticks:{font:{size:10}}}} }
+  });
+
+  /* Revenue by country */
+  const revByCountry = {};
+  data.forEach(f=>{ const c=normalizeCountry(f.country); revByCountry[c]=(revByCountry[c]||0)+(f.revenueM||0); });
+  const revSorted = Object.entries(revByCountry).sort((a,b)=>b[1]-a[1]);
+  new Chart(document.getElementById('revenueByCountryChart'), {
+    type:'bar',
+    data:{ labels:revSorted.map(e=>e[0]), datasets:[{ label:'US$ M', data:revSorted.map(e=>e[1]), backgroundColor:COLORS, borderRadius:4 }] },
+    options:{ responsive:true, plugins:{legend:{display:false}}, scales:{y:{title:{display:true,text:'US$ M',color:'#64748b'},ticks:{font:{size:10}}},x:{ticks:{font:{size:10},maxRotation:30}}} }
+  });
+
+  /* Country table */
+  const tbody = document.getElementById('countryTableBody');
+  const notoriousMap = {
+    'Rússia':'LockBit, Conti, REvil, Ryuk, DarkSide, Clop, Black Basta',
+    'Coreia do Norte':'WannaCry (Lazarus Group)',
+    'Romênia':'GandCrab',
+    'Irã':'SamSam',
+    'China':'GlobeImposter (suspeita)',
+    'Europa Oriental':'CryptoLocker, NetWalker',
+    'Brasil (suspeita)':'Pysa/Mespinoza',
+    'Desconhecido':'Akira, Qilin, Play, RansomHub, Maze',
+    'Ucrânia':'HelloKitty (suspeita)'
+  };
+  Object.entries(cats).sort((a,b)=>b[1].rev-a[1].rev).forEach(([country, info])=>{
+    const vicFmt = info.vic>=1e6?(info.vic/1e6).toFixed(1)+'M':info.vic>=1000?(info.vic/1000).toFixed(0)+'k':info.vic;
+    tbody.innerHTML += `<tr>
+      <td style="font-weight:700">${country}</td>
+      <td style="text-align:right">${info.families}</td>
+      <td style="text-align:right;color:#22c55e;font-weight:700">$${Math.round(info.rev)}M</td>
+      <td style="text-align:right;color:#f97316">${vicFmt}</td>
+      <td style="text-align:right">${info.sanc>0?`<span style="color:#f59e0b;font-weight:700">${info.sanc}</span>`:'—'}</td>
+      <td style="font-size:.72rem;color:#64748b">${notoriousMap[country]||info.names.slice(0,4).join(', ')}</td>
+    </tr>`;
+  });
+
+  /* Sector detail cards */
+  const sectorFamilies = {};
+  data.forEach(f=>{ (f.sectors||[]).forEach(s=>{ if(!sectorFamilies[s]) sectorFamilies[s]=[]; sectorFamilies[s].push({name:f.name,rev:f.revenueM,status:f.status}); }); });
+  document.getElementById('sectorDetail').innerHTML = secSorted.map(([sector,count])=>{
+    const fams = (sectorFamilies[sector]||[]).sort((a,b)=>b.rev-a.rev).slice(0,5);
+    return `<div style="background:#080c14;border:1px solid var(--c-border);border-radius:10px;padding:1rem">
+      <div style="font-size:.78rem;font-weight:700;margin-bottom:.5rem">${sector}</div>
+      <div class="mono" style="font-size:.65rem;color:#22c55e;margin-bottom:.5rem">${count} famílias</div>
+      ${fams.map(f=>`<div style="font-size:.7rem;color:#64748b;padding:.2rem 0;border-bottom:1px solid #1c2535">${f.name.split(' (')[0].substring(0,20)} <span style="color:#22c55e;float:right">$${f.rev}M</span></div>`).join('')}
+    </div>`;
+  }).join('');
+});
+</script>
+</body>
+</html>

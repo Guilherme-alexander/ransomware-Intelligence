@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Linguagens — Ransomware Intelligence</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root { --c-bg:#080c14; --c-surface:#0e1420; --c-border:#1c2535; --c-accent:#0ea5e9; }
+    body { background: var(--c-bg); color: #e2e8f0; font-family: 'Syne', sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    nav { background: rgba(14,20,32,.95); border-bottom: 1px solid var(--c-border); backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 100; }
+    .nav-link { color: #64748b; font-size: .8rem; font-weight: 600; letter-spacing: .05em; padding: .5rem .75rem; border-radius: 6px; transition: all .2s; text-decoration: none; }
+    .nav-link:hover { color: var(--c-accent); background: rgba(14,165,233,.08); }
+    .nav-link.active { color: var(--c-accent); background: rgba(14,165,233,.12); }
+    .card { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: 12px; padding: 1.5rem; }
+    .chart-title { font-size: .78rem; font-weight: 700; letter-spacing: .08em; color: #64748b; text-transform: uppercase; margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+    @media(max-width:900px) { .grid-2,.grid-3 { grid-template-columns: 1fr; } }
+    /* Lang cards */
+    .lang-card { border-radius: 10px; border: 1px solid var(--c-border); padding: 1rem 1.25rem; background: #080c14; position: relative; overflow: hidden; }
+    .lang-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--lc, #0ea5e9); }
+    .lang-bar { height: 4px; border-radius: 2px; margin-top: .5rem; }
+    ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: var(--c-bg); } ::-webkit-scrollbar-thumb { background: var(--c-border); border-radius: 2px; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none} }
+    .fade { animation: fadeIn .4s ease both; }
+  </style>
+</head>
+<body>
+<nav>
+  <div class="max-w-7xl mx-auto px-4 py-2 flex flex-wrap gap-1 items-center">
+    <span class="mono text-xs text-blue-400 font-bold mr-4">⬡ RWI</span>
+    <a href="dashboard.html" class="nav-link">📊 Dashboard</a>
+    <a href="grupos.html" class="nav-link">👥 Grupos</a>
+    <a href="comparar.html" class="nav-link">📋 Comparar</a>
+    <a href="criptografias.html" class="nav-link">🔐 Criptografias</a>
+    <a href="linguagens.html" class="nav-link active">⌨️ Linguagens</a>
+    <a href="cve.html" class="nav-link">🛡️ CVEs</a>
+    <a href="org.html" class="nav-link">🏢 Alvos</a>
+    <a href="anatomia.html" class="nav-link">🧬 Anatomia</a>
+    <a href="ransomware.html" class="nav-link">🏠 Início</a>
+  </div>
+</nav>
+<div class="max-w-7xl mx-auto px-4 py-8">
+  <h1 style="font-size:2rem;font-weight:800;letter-spacing:-.02em;margin-bottom:.25rem" class="fade">
+    ⌨️ Linguagens de <span style="color:#a855f7">Programação</span>
+  </h1>
+  <p class="mono fade" style="color:#64748b;font-size:.8rem;margin-bottom:1.5rem">
+    Distribuição, evolução temporal e bibliotecas criptográficas · 53 famílias · 2000–2026
+  </p>
+
+  <!-- Language cards (dynamic) -->
+  <div id="langCards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:.75rem;margin-bottom:1.5rem" class="fade"></div>
+
+  <!-- Charts Row 1 -->
+  <div class="grid-2 mb-4 fade">
+    <div class="card">
+      <div class="chart-title"><i class="fas fa-chart-pie text-purple-400"></i> Distribuição por Linguagem</div>
+      <canvas id="langPie" height="250"></canvas>
+      <p class="mono" style="font-size:.65rem;color:#475569;margin-top:.75rem">* Conta todas as linguagens listadas por família (ex: "Rust/C++" conta para ambas).</p>
+    </div>
+    <div class="card">
+      <div class="chart-title"><i class="fas fa-chart-line text-blue-400"></i> Evolução Temporal Acumulada</div>
+      <canvas id="langTimeline" height="250"></canvas>
+      <p class="mono" style="font-size:.65rem;color:#475569;margin-top:.75rem">Famílias acumuladas que usaram cada linguagem até aquele ano.</p>
+    </div>
+  </div>
+
+  <!-- Charts Row 2 -->
+  <div class="grid-2 mb-4 fade">
+    <div class="card">
+      <div class="chart-title"><i class="fas fa-boxes text-orange-400"></i> Bibliotecas Criptográficas Mais Usadas</div>
+      <canvas id="libChart" height="250"></canvas>
+      <p class="mono" style="font-size:.65rem;color:#475569;margin-top:.75rem">Baseado em análise de amostras reais de código (CryptoPP, OpenSSL, Windows CryptoAPI…)</p>
+    </div>
+    <div class="card">
+      <div class="chart-title"><i class="fas fa-exchange-alt text-green-400"></i> Linguagem por Era Histórica</div>
+      <canvas id="langEraChart" height="250"></canvas>
+      <p class="mono" style="font-size:.65rem;color:#475569;margin-top:.75rem">Distribuição de linguagens dentro de cada era. Mostra a migração C++ → Rust/Go.</p>
+    </div>
+  </div>
+
+  <!-- Lang family table -->
+  <div class="card fade">
+    <div class="chart-title"><i class="fas fa-list text-sky-400"></i> Famílias por Linguagem Principal</div>
+    <div id="langTable" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:.75rem"></div>
+  </div>
+
+  <footer style="text-align:center;font-size:.7rem;color:#334155;border-top:1px solid #1c2535;padding-top:1.5rem;margin-top:2rem;font-family:'JetBrains Mono',monospace">
+    Fonte: Análise de código-fonte e relatórios de inteligência de ameaças (2013–2026).
+  </footer>
+</div>
+<script>
+Chart.defaults.color = '#94a3b8';
+Chart.defaults.font.family = "'Syne', sans-serif";
+Chart.defaults.borderColor = '#1c2535';
+const PALETTE = ['#3b82f6','#22c55e','#eab308','#a855f7','#ef4444','#f97316','#06b6d4','#ec4899','#84cc16','#64748b'];
+const LANG_COLORS = { 'C++':'#3b82f6','Rust':'#22c55e','Go':'#eab308','C#':'#a855f7','Python':'#ef4444','Java':'#f97316','C':'#06b6d4','Pascal':'#ec4899','Delphi':'#84cc16','Assembly':'#64748b' };
+
+const ERAS = [
+  { name:'Pioneira 89–12', start:1989, end:2012 },
+  { name:'Crypto 13–16',   start:2013, end:2016 },
+  { name:'Worm 17–18',     start:2017, end:2018 },
+  { name:'RaaS 19–22',     start:2019, end:2022 },
+  { name:'Moderno 23–26',  start:2023, end:2026 },
+];
+
+fetch('data.json').then(r=>r.json()).then(json=>{
+  const families = json.families;
+
+  // Build lang map
+  const langMap = {};
+  const langFamilies = {};
+  families.forEach(f=>{
+    f.lang.split('/').forEach(raw=>{
+      let l = raw.trim();
+      if (l==='C#/Assembly') l='C#';
+      if (l==='Turbo Pascal') l='Pascal';
+      langMap[l]=(langMap[l]||0)+1;
+      if(!langFamilies[l]) langFamilies[l]=[];
+      langFamilies[l].push(f);
+    });
+  });
+  const sorted = Object.entries(langMap).sort((a,b)=>b[1]-a[1]);
+  const maxCount = sorted[0][1];
+
+  // Language summary cards
+  document.getElementById('langCards').innerHTML = sorted.map(([lang,cnt],i)=>{
+    const col = LANG_COLORS[lang]||PALETTE[i%PALETTE.length];
+    const pct = Math.round(cnt/families.length*100);
+    return `<div class="lang-card" style="--lc:${col}">
+      <div style="font-size:1.25rem;font-weight:800;color:${col}">${cnt}</div>
+      <div style="font-size:.85rem;font-weight:700">${lang}</div>
+      <div class="mono" style="font-size:.68rem;color:#475569">${pct}% das famílias</div>
+      <div class="lang-bar" style="background:${col};width:${Math.round(cnt/maxCount*100)}%;opacity:.7"></div>
+    </div>`;
+  }).join('');
+
+  // Pie
+  const top = sorted.slice(0,9);
+  const other = sorted.slice(9).reduce((s,e)=>s+e[1],0);
+  const pieLabels = top.map(e=>e[0]); if(other>0) pieLabels.push('Outras');
+  const pieData = top.map(e=>e[1]); if(other>0) pieData.push(other);
+  new Chart(document.getElementById('langPie'), {
+    type:'pie',
+    data:{ labels:pieLabels, datasets:[{ data:pieData, backgroundColor:pieLabels.map(l=>LANG_COLORS[l]||'#64748b'), borderWidth:0 }] },
+    options:{ responsive:true, plugins:{ legend:{ position:'right', labels:{font:{size:11},boxWidth:12} } } }
+  });
+
+  // Timeline
+  const TRACK = ['C++','Rust','Go','C#','Python','Java'];
+  const years = [2000,2005,2010,2013,2015,2017,2018,2019,2020,2021,2022,2023,2024,2025,2026];
+  const datasets = TRACK.map(lang=>({
+    label: lang,
+    data: years.map(yr=>families.filter(f=>{
+      const ls = f.lang.split('/').map(l=>l.trim().replace('C#/Assembly','C#').replace('Turbo Pascal','Pascal'));
+      return ls.includes(lang) && f.year<=yr;
+    }).length),
+    borderColor: LANG_COLORS[lang]||'#64748b',
+    tension:.3, fill:false
+  }));
+  new Chart(document.getElementById('langTimeline'), {
+    type:'line', data:{ labels:years, datasets },
+    options:{ responsive:true, plugins:{ legend:{ position:'top', labels:{font:{size:11},boxWidth:12} } }, scales:{ y:{ title:{display:true,text:'Famílias acumuladas',color:'#64748b'} }, x:{ticks:{font:{size:10}}} } }
+  });
+
+  // Libraries bar
+  const libs = [
+    {name:'Windows Crypto API',cnt:20},{name:'Crypto++',cnt:16},{name:'OpenSSL',cnt:10},
+    {name:'libsodium',cnt:7},{name:'LibTomCrypt',cnt:5},{name:'Botan',cnt:4},
+    {name:'Mbed TLS',cnt:3},{name:'wolfCrypt',cnt:2},{name:'RustCrypto',cnt:4},{name:'ring (Rust)',cnt:3}
+  ].sort((a,b)=>b.cnt-a.cnt);
+  new Chart(document.getElementById('libChart'), {
+    type:'bar',
+    data:{ labels:libs.map(l=>l.name), datasets:[{ label:'Frequência', data:libs.map(l=>l.cnt), backgroundColor:'#f97316', borderRadius:4 }] },
+    options:{ indexAxis:'y', responsive:true, plugins:{legend:{display:false}}, scales:{x:{title:{display:true,text:'Nº de famílias',color:'#64748b'},ticks:{font:{size:10}}},y:{ticks:{font:{size:10}}}} }
+  });
+
+  // Lang per era stacked bar
+  const eraDatasets = TRACK.map(lang=>({
+    label:lang,
+    data: ERAS.map(era=>families.filter(f=>{
+      const ls=f.lang.split('/').map(l=>l.trim().replace('Turbo Pascal','Pascal').replace('C#/Assembly','C#'));
+      return ls.includes(lang)&&f.year>=era.start&&f.year<=era.end;
+    }).length),
+    backgroundColor: (LANG_COLORS[lang]||'#64748b')+'cc',
+    borderColor: LANG_COLORS[lang]||'#64748b',
+    borderWidth:1, borderRadius:4
+  }));
+  new Chart(document.getElementById('langEraChart'), {
+    type:'bar',
+    data:{ labels:ERAS.map(e=>e.name), datasets:eraDatasets },
+    options:{ responsive:true, plugins:{ legend:{ position:'top', labels:{font:{size:10},boxWidth:10} } }, scales:{ x:{stacked:true,ticks:{font:{size:9}}}, y:{stacked:true,title:{display:true,text:'Famílias',color:'#64748b'}} } }
+  });
+
+  // Lang family table
+  document.getElementById('langTable').innerHTML = sorted.slice(0,8).map(([lang])=>{
+    const fams = (langFamilies[lang]||[]).sort((a,b)=>b.revenueM-a.revenueM);
+    const col = LANG_COLORS[lang]||'#64748b';
+    return `<div style="background:#080c14;border:1px solid var(--c-border);border-top:2px solid ${col};border-radius:8px;padding:.75rem">
+      <div style="font-weight:700;font-size:.85rem;color:${col};margin-bottom:.5rem">${lang} <span style="color:#475569;font-size:.72rem">(${fams.length})</span></div>
+      ${fams.slice(0,6).map(f=>`<div style="font-size:.72rem;color:#64748b;padding:.2rem 0;border-bottom:1px solid #1c2535;display:flex;justify-content:space-between">
+        <span>${f.name.split(' (')[0].substring(0,22)}</span>
+        <span style="color:#22c55e">$${f.revenueM}M</span>
+      </div>`).join('')}
+      ${fams.length>6?`<div class="mono" style="font-size:.65rem;color:#334155;margin-top:.4rem">+${fams.length-6} mais…</div>`:''}
+    </div>`;
+  }).join('');
+});
+</script>
+</body>
+</html>

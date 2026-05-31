@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ransomware Intelligence Hub</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root { --c-bg:#080c14; --c-surface:#0e1420; --c-border:#1c2535; --c-accent:#0ea5e9; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--c-bg); color: #e2e8f0; font-family: 'Syne', sans-serif; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem 1rem; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+
+    /* Background grid */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: linear-gradient(rgba(14,165,233,.04) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(14,165,233,.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+
+    .container { max-width: 900px; width: 100%; position: relative; z-index: 1; }
+
+    /* Header */
+    .pulse { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ef4444; box-shadow: 0 0 0 0 rgba(239,68,68,.4); animation: pulse 2s infinite; margin-right: 6px; vertical-align: middle; }
+    @keyframes pulse { 70%{box-shadow:0 0 0 8px transparent} 100%{box-shadow:0 0 0 0 transparent} }
+
+    .hero { text-align: center; margin-bottom: 3rem; }
+    .hero-eyebrow { display: inline-flex; align-items: center; gap: .5rem; background: rgba(14,165,233,.08); border: 1px solid rgba(14,165,233,.2); border-radius: 100px; padding: .35rem 1rem; font-size: .72rem; color: #38bdf8; margin-bottom: 1.5rem; font-family: 'JetBrains Mono', monospace; }
+    .hero-title { font-size: clamp(2.5rem, 6vw, 4.5rem); font-weight: 800; letter-spacing: -.04em; line-height: 1.05; margin-bottom: 1rem; }
+    .hero-title span { color: transparent; -webkit-text-stroke: 1px rgba(14,165,233,.4); }
+    .hero-sub { color: #475569; font-size: .9rem; font-family: 'JetBrains Mono', monospace; max-width: 500px; margin: 0 auto; line-height: 1.6; }
+
+    /* Nav cards */
+    .nav-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: .75rem; margin-bottom: 2rem; }
+    .nav-card { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: 12px; padding: 1.5rem; text-decoration: none; color: inherit; display: flex; align-items: flex-start; gap: 1rem; transition: all .25s; position: relative; overflow: hidden; }
+    .nav-card::before { content: ''; position: absolute; inset: 0; opacity: 0; background: linear-gradient(135deg, var(--accent, #0ea5e9) 0%, transparent 60%); transition: opacity .3s; }
+    .nav-card:hover { border-color: var(--accent, #0ea5e9); transform: translateY(-3px); box-shadow: 0 12px 24px -8px rgba(0,0,0,.5); }
+    .nav-card:hover::before { opacity: .06; }
+    .nav-icon { font-size: 2rem; flex-shrink: 0; width: 3rem; text-align: center; }
+    .nav-card h2 { font-size: .95rem; font-weight: 700; margin-bottom: .25rem; }
+    .nav-card p { font-size: .72rem; color: #475569; line-height: 1.5; font-family: 'JetBrains Mono', monospace; }
+    .nav-arrow { margin-left: auto; color: #1c2535; font-size: .8rem; transition: color .2s; align-self: center; flex-shrink: 0; }
+    .nav-card:hover .nav-arrow { color: var(--accent, #0ea5e9); }
+
+    /* Stats strip */
+    .stats-strip { display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem; margin-bottom: 2rem; }
+    .stat-chip { background: rgba(14,20,32,.8); border: 1px solid var(--c-border); border-radius: 8px; padding: .4rem .85rem; font-size: .72rem; font-family: 'JetBrains Mono', monospace; color: #64748b; }
+    .stat-chip strong { color: #e2e8f0; }
+
+    /* Footer */
+    footer { text-align: center; font-size: .7rem; color: #1e293b; font-family: 'JetBrains Mono', monospace; margin-top: 1rem; line-height: 1.8; }
+
+    @keyframes fadeIn { from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none} }
+    .fade { animation: fadeIn .5s ease both; }
+    .d1 { animation-delay: .1s; } .d2 { animation-delay: .2s; } .d3 { animation-delay: .3s; } .d4 { animation-delay: .4s; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Hero -->
+  <div class="hero fade">
+    <div class="hero-eyebrow">
+      <span class="pulse"></span>
+      LIVE INTEL · 2026 · 53 FAMÍLIAS ANALISADAS
+    </div>
+    <h1 class="hero-title">
+      Ransomware<br><span>Intelligence</span>
+    </h1>
+    <p class="hero-sub">
+      Pesquisa e análise de famílias de ransomware<br>
+      de 1989 a 2026 — dados, métricas e visualizações.
+    </p>
+  </div>
+
+  <!-- Stats strip -->
+  <div class="stats-strip d1 fade">
+    <div class="stat-chip">Famílias: <strong>53</strong></div>
+    <div class="stat-chip">Ativos 2026: <strong>23</strong></div>
+    <div class="stat-chip">Arrecadação: <strong>$6.5B+</strong></div>
+    <div class="stat-chip">Vítimas: <strong>~9M+</strong></div>
+    <div class="stat-chip">Cobertura: <strong>1989–2026</strong></div>
+    <div class="stat-chip">Sancionados: <strong>7 grupos</strong></div>
+  </div>
+
+  <!-- Navigation Cards -->
+  <div class="nav-grid d2 fade">
+    <a href="dashboard.html" class="nav-card" style="--accent:#0ea5e9">
+      <div class="nav-icon">📊</div>
+      <div>
+        <h2>Dashboard Geral</h2>
+        <p>KPIs, gráficos de evolução, linguagens, arrecadação e grupos ativos em tempo real.</p>
+      </div>
+      <i class="fas fa-chevron-right nav-arrow"></i>
+    </a>
+    <a href="grupos.html" class="nav-card" style="--accent:#f97316">
+      <div class="nav-icon">👥</div>
+      <div>
+        <h2>Eras & Grupos</h2>
+        <p>Linha do tempo, vida útil de cada família, impacto por era histórica e análise comparativa.</p>
+      </div>
+      <i class="fas fa-chevron-right nav-arrow"></i>
+    </a>
+    <a href="comparar.html" class="nav-card" style="--accent:#22c55e">
+      <div class="nav-icon">📋</div>
+      <div>
+        <h2>Comparar Famílias</h2>
+        <p>Tabela completa ordenável e filtrável com todos os campos — clique para ver detalhes.</p>
+      </div>
+      <i class="fas fa-chevron-right nav-arrow"></i>
+    </a>
+    <a href="criptografias.html" class="nav-card" style="--accent:#ef4444">
+      <div class="nav-icon">🔐</div>
+      <div>
+        <h2>Criptografias</h2>
+        <p>Algoritmos, distribuição, complexidade, evolução 2000–2026 e resistência pós-quântica.</p>
+      </div>
+      <i class="fas fa-chevron-right nav-arrow"></i>
+    </a>
+    <a href="linguagens.html" class="nav-card" style="--accent:#a855f7">
+      <div class="nav-icon">⌨️</div>
+      <div>
+        <h2>Linguagens</h2>
+        <p>Distribuição por linguagem, evolução temporal e bibliotecas criptográficas usadas.</p>
+      </div>
+      <i class="fas fa-chevron-right nav-arrow"></i>
+    </a>
+    <a href="cve.html" class="nav-card" style="--accent:#f59e0b">
+      <div class="nav-icon">🛡️</div>
+      <div>
+        <h2>CVEs & Vulnerabilidades</h2>
+        <p>Falhas mais exploradas, severidade, plataformas alvo e famílias associadas.</p>
+      </div>
+      <i class="fas fa-chevron-right nav-arrow"></i>
+    </a>
+    <a href="org.html" class="nav-card" style="--accent:#06b6d4">
+      <div class="nav-icon">🏢</div>
+      <div>
+        <h2>Alvos & Organizações</h2>
+        <p>Países atacantes, países mais afetados, setores e tipos de organização.</p>
+      </div>
+      <i class="fas fa-chevron-right nav-arrow"></i>
+    </a>
+    <a href="anatomia.html" class="nav-card" style="--accent:#ec4899">
+      <div class="nav-icon">🧬</div>
+      <div>
+        <h2>Anatomia do Ransomware</h2>
+        <p>Fases técnicas de operação, vetores, técnicas avançadas e tipos por comportamento.</p>
+      </div>
+      <i class="fas fa-chevron-right nav-arrow"></i>
+    </a>
+  </div>
+
+  <footer class="d4 fade">
+    Fontes: NVD · CISA · MITRE ATT&CK · Chainalysis · Group-IB · Coveware · FBI IC3 · Europol<br>
+    Dados para fins de pesquisa e educação em cibersegurança. © 2026
+  </footer>
+</div>
+</body>
+</html>

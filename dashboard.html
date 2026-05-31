@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — Ransomware Intelligence</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&family=Pixelify+Sans:wght@400..700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --c-bg:      #080c14;
+      --c-surface: #0e1420;
+      --c-border:  #1c2535;
+      --c-accent:  #0ea5e9;
+      --c-red:     #ef4444;
+      --c-green:   #22c55e;
+      --c-yellow:  #f59e0b;
+      --c-purple:  #a855f7;
+      --c-orange:  #f97316;
+    }
+    * { box-sizing: border-box; }
+    body { background: var(--c-bg); color: #e2e8f0; font-family: 'Syne', sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+
+    /* Nav */
+    nav { background: rgba(14,20,32,.95); border-bottom: 1px solid var(--c-border); backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 100; }
+    .nav-link { color: #64748b; font-size: .8rem; font-weight: 600; letter-spacing: .05em; padding: .5rem .75rem; border-radius: 6px; transition: all .2s; text-decoration: none; }
+    .nav-link:hover { color: var(--c-accent); background: rgba(14,165,233,.08); }
+    .nav-link.active { color: var(--c-accent); background: rgba(14,165,233,.12); }
+
+    /* Hero */
+    .hero-title { font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 800; letter-spacing: -.02em; }
+    .hero-sub { color: #64748b; font-size: .9rem; margin-top: .5rem; }
+
+    /* KPI Cards */
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; }
+    .kpi { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: 12px; padding: 1.25rem 1.5rem; position: relative; overflow: hidden; transition: border-color .2s; }
+    .kpi::before { content: ''; position: absolute; inset: 0; opacity: 0; background: linear-gradient(135deg, var(--accent-color, #0ea5e9) 0%, transparent 60%); transition: opacity .3s; }
+    .kpi:hover::before { opacity: .06; }
+    .kpi:hover { border-color: var(--accent-color, #0ea5e9); }
+    .kpi-label { font-size: .7rem; color: #64748b; letter-spacing: .1em; text-transform: uppercase; margin-bottom: .4rem; }
+    .kpi-value { font-size: 2rem; font-weight: 800; line-height: 1; }
+    .kpi-sub { font-size: .7rem; color: #475569; margin-top: .4rem; }
+    .kpi-icon { position: absolute; top: 1rem; right: 1rem; font-size: 1.25rem; opacity: .25; }
+
+    /* Chart containers */
+    .chart-card { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: 12px; padding: 1.5rem; }
+    .chart-title { font-size: .85rem; font-weight: 700; letter-spacing: .05em; color: #94a3b8; text-transform: uppercase; margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem; }
+
+    /* Threat feed */
+    .threat-row { display: flex; align-items: center; gap: .75rem; padding: .6rem 0; border-bottom: 1px solid var(--c-border); font-size: .8rem; }
+    .threat-row:last-child { border: none; }
+    .badge { font-size: .65rem; padding: .15rem .45rem; border-radius: 4px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+    .badge-ativo { background: rgba(239,68,68,.15); color: #ef4444; }
+    .badge-off { background: rgba(71,85,105,.15); color: #475569; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: var(--c-bg); } ::-webkit-scrollbar-thumb { background: var(--c-border); border-radius: 2px; }
+
+    /* Pulse dot */
+    .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--c-red); box-shadow: 0 0 0 0 rgba(239,68,68,.4); animation: pulse 2s infinite; flex-shrink: 0; }
+    @keyframes pulse { 70% { box-shadow: 0 0 0 8px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+    @media (max-width: 900px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+    @media (max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } }
+
+    /* Fade-in on load */
+    .fade-in { animation: fadeIn .5s ease both; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+    .delay-1 { animation-delay: .1s; } .delay-2 { animation-delay: .2s; } .delay-3 { animation-delay: .3s; }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="max-w-7xl mx-auto px-4 py-2 flex flex-wrap gap-1 items-center">
+    <span class="mono text-xs text-blue-400 font-bold mr-4">⬡ RWI</span>
+    <a href="dashboard.html" class="nav-link active">📊 Dashboard</a>
+    <a href="grupos.html" class="nav-link">👥 Grupos</a>
+    <a href="comparar.html" class="nav-link">📋 Comparar</a>
+    <a href="criptografias.html" class="nav-link">🔐 Criptografias</a>
+    <a href="linguagens.html" class="nav-link">⌨️ Linguagens</a>
+    <a href="cve.html" class="nav-link">🛡️ CVEs</a>
+    <a href="org.html" class="nav-link">🏢 Alvos</a>
+    <a href="anatomia.html" class="nav-link">🧬 Anatomia</a>
+    <a href="ransomware.html" class="nav-link">🏠 Início</a>
+  </div>
+</nav>
+
+<div class="max-w-7xl mx-auto px-4 py-8">
+
+  <!-- Header -->
+  <div class="mb-8 fade-in">
+    <div class="flex items-center gap-3 mb-2">
+      <div class="pulse"></div>
+      <span class="mono text-xs text-red-400">LIVE INTEL — 2026</span>
+    </div>
+    <h1 class="hero-title">Ransomware Intelligence<br><span class="text-sky-400">Dashboard</span></h1>
+    <p class="hero-sub mono">53 famílias analisadas · 2000–2026 · Dados atualizados</p>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid mb-8 fade-in delay-1" id="kpiGrid"></div>
+
+  <!-- Row 1: Timeline + Languages -->
+  <div class="grid-2 mb-4 fade-in delay-2">
+    <div class="chart-card">
+      <div class="chart-title"><i class="fas fa-chart-line text-sky-400"></i> Evolução por Ano</div>
+      <canvas id="timelineChart" height="180"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><i class="fas fa-code text-purple-400"></i> Linguagens de Programação</div>
+      <canvas id="langChart" height="180"></canvas>
+    </div>
+  </div>
+
+  <!-- Row 2: Revenue + Status + Modes -->
+  <div class="grid-3 mb-4 fade-in delay-3">
+    <div class="chart-card" style="grid-column: span 2">
+      <div class="chart-title"><i class="fas fa-dollar-sign text-green-400"></i> Top 12 por Arrecadação Estimada (US$ M)</div>
+      <canvas id="revenueChart" height="200"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><i class="fas fa-circle text-red-400"></i> Status Atual</div>
+      <canvas id="statusChart" height="180"></canvas>
+      <div class="mt-3" id="statusLegend"></div>
+    </div>
+  </div>
+
+  <!-- Row 3: Vectors + Sectors + Modes -->
+  <div class="grid-3 mb-4 fade-in delay-3">
+    <div class="chart-card">
+      <div class="chart-title"><i class="fas fa-door-open text-orange-400"></i> Vetores de Ataque</div>
+      <canvas id="vectorChart" height="200"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><i class="fas fa-building text-yellow-400"></i> Setores Mais Atingidos</div>
+      <canvas id="sectorsChart" height="200"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><i class="fas fa-layer-group text-blue-400"></i> Modo de Operação</div>
+      <canvas id="modeChart" height="200"></canvas>
+    </div>
+  </div>
+
+  <!-- Row 4: Revenue timeline + Threat feed -->
+  <div class="grid-2 mb-4 fade-in delay-3">
+    <div class="chart-card">
+      <div class="chart-title"><i class="fas fa-chart-area text-emerald-400"></i> Arrecadação Acumulada por Era (US$ M)</div>
+      <canvas id="revenueTimelineChart" height="220"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><i class="fas fa-bolt text-yellow-400"></i> Grupos Ativos (2026)</div>
+      <div id="threatFeed" style="max-height: 280px; overflow-y: auto;"></div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="text-center mono text-xs text-slate-600 border-t border-slate-800 pt-6 mt-4">
+    Fontes: NVD/NIST · CISA KEV · MITRE ATT&CK · Chainalysis · Group-IB · Coveware · FBI IC3 · Europol<br>
+    Dados para fins de pesquisa e educação em cibersegurança.
+  </footer>
+</div>
+
+<script>
+// Chart.js defaults
+Chart.defaults.color = '#94a3b8';
+Chart.defaults.font.family = "'Syne', sans-serif";
+Chart.defaults.borderColor = '#1c2535';
+const COLORS = ['#0ea5e9','#22c55e','#f97316','#a855f7','#ef4444','#f59e0b','#06b6d4','#ec4899','#84cc16','#64748b','#14b8a6','#8b5cf6'];
+
+fetch('data.json').then(r => r.json()).then(json => {
+  const data = json.families;
+
+  /* ── KPI Cards ── */
+  const ativas = data.filter(f => f.status.includes('Ativo')).length;
+  const totalRev = data.reduce((s, f) => s + (f.revenueM || 0), 0);
+  const totalVictims = data.reduce((s, f) => s + (f.estimated_victims || 0), 0);
+  const sanctioned = data.filter(f => f.sanctions).length;
+  const withDecryptor = data.filter(f => f.decryptor_available).length;
+  const doubleExt = data.filter(f => f.double_extortion).length;
+  const raas = data.filter(f => f.mode.includes('RaaS')).length;
+  const maxRansom = Math.max(...data.map(f => f.ransom_avg_k || 0));
+
+  const kpis = [
+    { label: 'Famílias Analisadas', value: data.length, sub: 'desde 1989', icon: 'fa-database', color: '#0ea5e9' },
+    { label: 'Grupos Ativos', value: ativas, sub: 'em 2026', icon: 'fa-skull', color: '#ef4444' },
+    { label: 'Arrecadação Total', value: `$${Math.round(totalRev/1000*10)/10}B`, sub: 'estimada (USD)', icon: 'fa-dollar-sign', color: '#22c55e' },
+    { label: 'Vítimas Estimadas', value: `${(totalVictims/1000000).toFixed(1)}M`, sub: 'organizações/indivíduos', icon: 'fa-users', color: '#f97316' },
+    { label: 'Modelos RaaS', value: raas, sub: `${Math.round(raas/data.length*100)}% do total`, icon: 'fa-handshake', color: '#a855f7' },
+    { label: 'Dupla Extorsão', value: doubleExt, sub: 'grupos com leak site', icon: 'fa-file-shield', color: '#f59e0b' },
+    { label: 'Maior Resgate', value: `$${maxRansom}k`, sub: 'média de um grupo', icon: 'fa-arrow-up', color: '#06b6d4' },
+    { label: 'Sancionados (OFAC)', value: sanctioned, sub: 'pelo Tesouro dos EUA', icon: 'fa-ban', color: '#ec4899' },
+    { label: 'Decryptors Públicos', value: withDecryptor, sub: `${Math.round(withDecryptor/data.length*100)}% das famílias`, icon: 'fa-unlock', color: '#84cc16' },
+  ];
+
+  document.getElementById('kpiGrid').innerHTML = kpis.map(k => `
+    <div class="kpi" style="--accent-color:${k.color}">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value" style="color:${k.color}">${k.value}</div>
+      <div class="kpi-sub mono">${k.sub}</div>
+      <i class="fas ${k.icon} kpi-icon" style="color:${k.color}"></i>
+    </div>`).join('');
+
+  /* ── Timeline Chart ── */
+  const yearCount = {};
+  data.forEach(f => { yearCount[f.year] = (yearCount[f.year] || 0) + 1; });
+  const years = Object.keys(yearCount).sort();
+  new Chart(document.getElementById('timelineChart'), {
+    type: 'bar',
+    data: {
+      labels: years,
+      datasets: [{
+        label: 'Novas famílias',
+        data: years.map(y => yearCount[y]),
+        backgroundColor: years.map(y => y >= '2023' ? '#ef4444' : y >= '2019' ? '#f97316' : '#0ea5e9'),
+        borderRadius: 4
+      }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { ticks: { maxRotation: 45, font: { size: 10 } } }, y: { ticks: { stepSize: 1 } } } }
+  });
+
+  /* ── Language Chart ── */
+  const langMap = {};
+  data.forEach(f => {
+    f.lang.split('/').forEach(l => {
+      const k = l.trim().replace('Turbo Pascal','Pascal').replace('C#/Assembly','C#');
+      langMap[k] = (langMap[k] || 0) + 1;
+    });
+  });
+  const langSorted = Object.entries(langMap).sort((a,b) => b[1]-a[1]).slice(0,8);
+  new Chart(document.getElementById('langChart'), {
+    type: 'pie',
+    data: { labels: langSorted.map(e=>e[0]), datasets: [{ data: langSorted.map(e=>e[1]), backgroundColor: COLORS, borderWidth: 0 }] },
+    options: { responsive: true, plugins: { legend: { position: 'right', labels: { font: { size: 11 }, boxWidth: 12 } } } }
+  });
+
+  /* ── Revenue Top 12 ── */
+  const topRev = [...data].sort((a,b) => b.revenueM - a.revenueM).slice(0,12);
+  new Chart(document.getElementById('revenueChart'), {
+    type: 'bar',
+    data: {
+      labels: topRev.map(f => f.name.replace(' (2026)','').replace(' (2026 var)','')),
+      datasets: [{
+        label: 'US$ Milhões',
+        data: topRev.map(f => f.revenueM),
+        backgroundColor: topRev.map(f => f.status.includes('Ativo') ? '#22c55e' : '#475569'),
+        borderRadius: 4
+      }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` US$ ${c.raw}M` } } },
+      scales: { x: { title: { display: true, text: 'US$ Milhões', color: '#64748b' } }, y: { ticks: { font: { size: 10 } } } }
+    }
+  });
+
+  /* ── Status Chart ── */
+  const statusMap = {};
+  data.forEach(f => {
+    const s = f.status.includes('Ativo') ? 'Ativo' :
+              f.status.includes('Desmantelado') ? 'Desmantelado' :
+              f.status.includes('Descontinuado') ? 'Descontinuado' : 'Desativado';
+    statusMap[s] = (statusMap[s] || 0) + 1;
+  });
+  const statusColors = { 'Ativo':'#ef4444', 'Desmantelado':'#64748b', 'Descontinuado':'#f59e0b', 'Desativado':'#1e293b' };
+  new Chart(document.getElementById('statusChart'), {
+    type: 'doughnut',
+    data: { labels: Object.keys(statusMap), datasets: [{ data: Object.values(statusMap), backgroundColor: Object.keys(statusMap).map(k => statusColors[k]), borderWidth: 0 }] },
+    options: { responsive: true, cutout: '65%', plugins: { legend: { display: false } } }
+  });
+  document.getElementById('statusLegend').innerHTML = Object.entries(statusMap).map(([k,v]) => `
+    <div style="display:flex;align-items:center;gap:8px;font-size:.75rem;margin-bottom:4px;">
+      <div style="width:10px;height:10px;border-radius:50%;background:${statusColors[k]};flex-shrink:0;"></div>
+      <span style="color:#94a3b8;">${k}</span>
+      <span class="mono" style="color:#e2e8f0;margin-left:auto;font-weight:700;">${v}</span>
+    </div>`).join('');
+
+  /* ── Vectors Chart ── */
+  const vecMap = {};
+  data.forEach(f => { (f.vectors || []).forEach(v => {
+    const vn = v.includes('RDP')?'RDP': v.includes('Phishing')?'Phishing': v.includes('VPN')?'VPN':
+               v.includes('Supply')?'Supply Chain': v.includes('Exploit')?'Exploit/Zero-day':
+               v.includes('VMware')?'VMware': v.includes('Email')?'Email': 'Outros';
+    vecMap[vn] = (vecMap[vn] || 0) + 1;
+  }); });
+  const vecSorted = Object.entries(vecMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  new Chart(document.getElementById('vectorChart'), {
+    type: 'bar',
+    data: { labels: vecSorted.map(e=>e[0]), datasets: [{ data: vecSorted.map(e=>e[1]), backgroundColor: '#f97316', borderRadius: 4 }] },
+    options: { indexAxis:'y', responsive: true, plugins:{legend:{display:false}}, scales:{x:{ticks:{font:{size:10}}},y:{ticks:{font:{size:10}}}} }
+  });
+
+  /* ── Sectors Chart ── */
+  const secMap = {};
+  data.forEach(f => { (f.sectors || []).forEach(s => { secMap[s] = (secMap[s]||0)+1; }); });
+  const secSorted = Object.entries(secMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  new Chart(document.getElementById('sectorsChart'), {
+    type: 'bar',
+    data: { labels: secSorted.map(e=>e[0]), datasets: [{ data: secSorted.map(e=>e[1]), backgroundColor: '#a855f7', borderRadius: 4 }] },
+    options: { indexAxis:'y', responsive: true, plugins:{legend:{display:false}}, scales:{x:{ticks:{font:{size:10}}},y:{ticks:{font:{size:10}}}} }
+  });
+
+  /* ── Mode Chart ── */
+  const modeMap = {};
+  data.forEach(f => { modeMap[f.mode] = (modeMap[f.mode]||0)+1; });
+  const modeSorted = Object.entries(modeMap).sort((a,b)=>b[1]-a[1]);
+  new Chart(document.getElementById('modeChart'), {
+    type: 'pie',
+    data: { labels: modeSorted.map(e=>e[0]), datasets:[{ data:modeSorted.map(e=>e[1]), backgroundColor:COLORS, borderWidth:0 }] },
+    options: { responsive: true, plugins: { legend: { position:'bottom', labels:{font:{size:9},boxWidth:10} } } }
+  });
+
+  /* ── Revenue by Era ── */
+  const eras = [
+    { label:'Pioneira\n1989–12', start:1989, end:2012 },
+    { label:'Crypto+BTC\n2013–16', start:2013, end:2016 },
+    { label:'Worm\n2017–18', start:2017, end:2018 },
+    { label:'RaaS\n2019–22', start:2019, end:2022 },
+    { label:'Moderno\n2023–26', start:2023, end:2026 },
+  ];
+  const eraRevs = eras.map(e => data.filter(f=>f.year>=e.start&&f.year<=e.end).reduce((s,f)=>s+(f.revenueM||0),0));
+  const eraCounts = eras.map(e => data.filter(f=>f.year>=e.start&&f.year<=e.end).length);
+  new Chart(document.getElementById('revenueTimelineChart'), {
+    type: 'bar',
+    data: {
+      labels: eras.map(e=>e.label.split('\n')[0]+'\n'+e.label.split('\n')[1]),
+      datasets: [
+        { label:'Arrecadação (US$ M)', data:eraRevs, backgroundColor:['#1e3a5f','#1e4d2b','#7c2d12','#4c1d95','#7f1d1d'], yAxisID:'y', borderRadius:6 },
+        { label:'Nº de famílias', data:eraCounts, type:'line', borderColor:'#f59e0b', pointBackgroundColor:'#f59e0b', yAxisID:'y1', tension:.3 }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { font:{size:11} } } },
+      scales: {
+        y: { type:'linear', position:'left', title:{display:true,text:'US$ M',color:'#64748b'} },
+        y1: { type:'linear', position:'right', title:{display:true,text:'Famílias',color:'#64748b'}, grid:{drawOnChartArea:false} }
+      }
+    }
+  });
+
+  /* ── Threat Feed (active groups) ── */
+  const active = data.filter(f=>f.status.includes('Ativo')).sort((a,b)=>b.revenueM-a.revenueM);
+  document.getElementById('threatFeed').innerHTML = active.map(f => `
+    <div class="threat-row">
+      <div class="pulse" style="background:${f.revenueM>100?'#ef4444':'#f97316'}"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.8rem;font-weight:700;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.name}</div>
+        <div class="mono" style="font-size:.65rem;color:#475569">${f.mode} · ${f.country.split(' ')[0]}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div class="mono" style="font-size:.75rem;color:#22c55e;font-weight:700">$${f.revenueM}M</div>
+        <div class="badge badge-ativo">ATIVO</div>
+      </div>
+    </div>`).join('');
+});
+</script>
+</body>
+</html>
