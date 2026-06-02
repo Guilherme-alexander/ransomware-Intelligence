@@ -6,10 +6,7 @@
 ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat&logo=javascript&logoColor=black)
 ![Chart.js](https://img.shields.io/badge/Chart.js-FF6384?style=flat&logo=chartdotjs&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat&logo=tailwind-css&logoColor=white)
-<<<<<<< HEAD
 ![Páginas](https://img.shields.io/badge/Páginas-10-0ea5e9?style=flat)
-=======
->>>>>>> 0e17ba388619ef1ea033bb119a09b52c7f0389bb
 ![License MIT](https://img.shields.io/badge/License-MIT-blue?style=flat)
 
 ---
@@ -43,10 +40,7 @@ ransomware-Intelligence/
 ├── cve.html             # CVEs e vulnerabilidades mais exploradas
 ├── org.html             # Alvos: países, setores e organizações
 ├── anatomia.html        # Anatomia técnica de um ransomware
-<<<<<<< HEAD
 ├── timeline.html        # Linha do tempo interativa (1989–2026)
-=======
->>>>>>> 0e17ba388619ef1ea033bb119a09b52c7f0389bb
 │
 ├── data.json            # Base de dados principal (53 famílias)
 └── utils.js             # Funções utilitárias compartilhadas
@@ -114,7 +108,6 @@ Hub de navegação com estatísticas gerais do projeto e acesso rápido a todas 
 - Tabela de tipos por comportamento (Crypto, RaaS, Wiper, Industrial…)
 - Cards de **10 técnicas avançadas** (LotL, Fileless, PQ Crypto, AI Phishing…)
 
-<<<<<<< HEAD
 ### 📅 Timeline (`timeline.html`)
 - **30 eventos históricos** documentados de 1989 a 2026 com fontes reais
 - Timeline vertical alternada (esquerda/direita) com spine central animado
@@ -125,8 +118,6 @@ Hub de navegação com estatísticas gerais do projeto e acesso rápido a todas 
 - Responsivo: colapsa para coluna única em mobile
 - Cobre marcos como: AIDS Trojan (1989), WannaCry, NotPetya, Colonial Pipeline, MOVEit, Operação Cronos e criptografia pós-quântica (2026)
 
-=======
->>>>>>> 0e17ba388619ef1ea033bb119a09b52c7f0389bb
 ---
 
 ## 🗃️ Estrutura do `data.json`
@@ -202,49 +193,6 @@ Nenhum `npm install` necessário.
 
 ---
 
-<<<<<<< HEAD
-## 🎨 Como Trocar a Fonte
-
-As fontes são carregadas via Google Fonts e aplicadas por CSS variables. Para trocar:
-
-**1. Escolha a nova fonte em** [fonts.google.com](https://fonts.google.com)
-
-**2. Substitua o `<link>` no `<head>` de cada HTML:**
-```html
-<!-- Antes -->
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
-
-<!-- Depois (exemplo com Space Grotesk + Fira Code) -->
-<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&family=Space+Grotesk:wght@400;700;800&display=swap" rel="stylesheet">
-```
-
-**3. Atualize as referências no CSS de cada arquivo:**
-```css
-body  { font-family: 'Space Grotesk', sans-serif; }  /* antes: 'Syne' */
-.mono { font-family: 'Fira Code', monospace; }        /* antes: 'JetBrains Mono' */
-```
-
-**Dica — troca global com VS Code (`Ctrl+H` → substituir em todos os arquivos):**
-
-| Substituir | Por |
-|---|---|
-| `'Syne'` | `'Space Grotesk'` |
-| `'JetBrains Mono'` | `'Fira Code'` |
-
-**Combinações recomendadas para o estilo dark/tech do projeto:**
-
-| Display (corpo) | Mono (dados) | Estilo |
-|---|---|---|
-| **Syne** *(atual)* | **JetBrains Mono** | Industrial / cyberpunk |
-| **Space Grotesk** | **Fira Code** | Moderno / limpo |
-| **DM Sans** | **IBM Plex Mono** | Corporativo / sóbrio |
-| **Outfit** | **Source Code Pro** | Técnico / neutro |
-| **Orbitron** | **Share Tech Mono** | Sci-fi / futurista |
-
----
-
-=======
->>>>>>> 0e17ba388619ef1ea033bb119a09b52c7f0389bb
 ## 📚 Fontes & Referências
 
 - [NVD — National Vulnerability Database (NIST)](https://nvd.nist.gov)
