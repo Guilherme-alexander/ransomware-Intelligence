@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Timeline — Ransomware Intelligence</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:      #080c14;
+      --surface: #0e1420;
+      --border:  #1c2535;
+      --accent:  #0ea5e9;
+      --text:    #e2e8f0;
+      --muted:   #475569;
+      --subtle:  #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+
+    /* ── NAV ── */
+    nav { background: rgba(14,20,32,.95); border-bottom: 1px solid var(--border); backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 100; }
+    .nav-link { color: var(--muted); font-size: .8rem; font-weight: 600; letter-spacing: .05em; padding: .5rem .75rem; border-radius: 6px; transition: all .2s; text-decoration: none; display: inline-block; }
+    .nav-link:hover { color: var(--accent); background: rgba(14,165,233,.08); }
+    .nav-link.active { color: var(--accent); background: rgba(14,165,233,.12); }
+
+    /* ── HERO ── */
+    .hero { padding: 2.5rem 1.5rem 1.5rem; max-width: 900px; margin: 0 auto; }
+    .hero h1 { font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 800; letter-spacing: -.03em; line-height: 1.1; }
+    .hero p { color: var(--subtle); font-size: .82rem; font-family: 'JetBrains Mono', monospace; margin-top: .5rem; }
+
+    /* ── FILTER BAR ── */
+    .filter-bar { display: flex; flex-wrap: wrap; gap: .5rem; max-width: 900px; margin: 0 auto 2rem; padding: 0 1.5rem; }
+    .era-btn { border: 1px solid var(--border); background: transparent; color: var(--muted); border-radius: 100px; padding: .35rem 1rem; font-size: .72rem; font-family: 'Syne', sans-serif; font-weight: 600; cursor: pointer; transition: all .2s; white-space: nowrap; }
+    .era-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .era-btn.active { color: #fff; }
+    .era-btn[data-era="all"].active { background: #334155; border-color: #334155; }
+
+    /* ── TIMELINE WRAPPER ── */
+    .tl-outer { max-width: 900px; margin: 0 auto; padding: 0 1.5rem 4rem; }
+
+    /* Central spine */
+    .tl-spine { position: relative; }
+    .tl-spine::before {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 0; bottom: 0;
+      width: 1px;
+      background: linear-gradient(to bottom, transparent 0%, var(--border) 5%, var(--border) 95%, transparent 100%);
+      transform: translateX(-50%);
+    }
+
+    /* Year marker */
+    .year-marker {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 2rem 0 .5rem;
+    }
+    .year-pill {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: .3rem 1rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .8rem;
+      font-weight: 700;
+      color: var(--subtle);
+      position: relative;
+      z-index: 1;
+    }
+    .year-pill.era-start {
+      border-width: 2px;
+      color: var(--text);
+    }
+
+    /* Event row — alternating left/right */
+    .event-row {
+      display: grid;
+      grid-template-columns: 1fr 28px 1fr;
+      gap: 0;
+      align-items: start;
+      margin-bottom: 1.25rem;
+      position: relative;
+    }
+
+    .event-left  { grid-column: 1; padding-right: 1.5rem; text-align: right; }
+    .event-right { grid-column: 3; padding-left:  1.5rem; text-align: left;  }
+    .event-dot   { grid-column: 2; display: flex; justify-content: center; padding-top: .8rem; }
+
+    /* Dot */
+    .dot {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      background: var(--bg);
+      cursor: pointer;
+      transition: all .25s;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .dot.pulse-ring::after {
+      content: '';
+      position: absolute;
+      inset: -5px;
+      border-radius: 50%;
+      border: 1px solid currentColor;
+      opacity: .35;
+      animation: ripple 2s ease-out infinite;
+    }
+    @keyframes ripple { 0%{transform:scale(.7);opacity:.35} 100%{transform:scale(1.8);opacity:0} }
+    .dot:hover { transform: scale(1.35); }
+
+    /* Event card */
+    .event-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: .9rem 1.1rem;
+      cursor: pointer;
+      transition: border-color .2s, transform .2s, box-shadow .2s;
+      position: relative;
+    }
+    .event-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0,0,0,.45);
+    }
+    .event-card.active { border-width: 2px; }
+
+    /* Card accent stripe (left or right depending on side) */
+    .event-left .event-card::after {
+      content: '';
+      position: absolute;
+      right: -1px; top: 12px; bottom: 12px;
+      width: 3px;
+      border-radius: 0 3px 3px 0;
+    }
+    .event-right .event-card::after {
+      content: '';
+      position: absolute;
+      left: -1px; top: 12px; bottom: 12px;
+      width: 3px;
+      border-radius: 3px 0 0 3px;
+    }
+
+    .card-date { font-size: .65rem; font-family: 'JetBrains Mono', monospace; color: var(--muted); margin-bottom: .3rem; }
+    .card-title { font-size: .88rem; font-weight: 700; line-height: 1.3; margin-bottom: .3rem; }
+    .card-desc  { font-size: .75rem; color: var(--subtle); line-height: 1.5; }
+
+    .badge { display: inline-block; font-size: .58rem; padding: .12rem .4rem; border-radius: 4px; font-weight: 700; font-family: 'JetBrains Mono', monospace; margin-bottom: .35rem; }
+
+    /* ── DETAIL PANEL ── */
+    #detailPanel {
+      position: fixed;
+      right: 0; top: 0; bottom: 0;
+      width: min(400px, 92vw);
+      background: #0a0f1a;
+      border-left: 1px solid var(--border);
+      z-index: 200;
+      overflow-y: auto;
+      transform: translateX(100%);
+      transition: transform .3s cubic-bezier(.4,0,.2,1);
+      padding: 1.5rem;
+    }
+    #detailPanel.open { transform: translateX(0); }
+    #detailPanel::-webkit-scrollbar { width: 3px; }
+    #detailPanel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .dp-close { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 6px; padding: .35rem .65rem; cursor: pointer; font-size: .8rem; transition: all .2s; font-family: 'Syne', sans-serif; }
+    .dp-close:hover { border-color: var(--accent); color: var(--accent); }
+    .dp-tag { font-size: .62rem; padding: .12rem .5rem; border-radius: 100px; border: 1px solid var(--border); color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+    /* Overlay for closing panel */
+    #overlay { display: none; position: fixed; inset: 0; z-index: 199; }
+    #overlay.open { display: block; }
+
+    /* ── SEARCH ── */
+    #searchInput {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 8px;
+      padding: .45rem .85rem;
+      font-size: .8rem;
+      font-family: 'Syne', sans-serif;
+      outline: none;
+      width: 240px;
+      transition: border-color .2s;
+    }
+    #searchInput:focus { border-color: var(--accent); }
+    #searchInput::placeholder { color: var(--muted); }
+
+    /* ── STAT CHIPS ── */
+    .stats-row { display: flex; flex-wrap: wrap; gap: .5rem; max-width: 900px; margin: 0 auto 1.5rem; padding: 0 1.5rem; }
+    .stat-chip { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: .35rem .85rem; font-size: .72rem; font-family: 'JetBrains Mono', monospace; color: var(--muted); }
+    .stat-chip strong { color: var(--text); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 600px) {
+      .tl-spine::before { left: 16px; }
+      .event-row { grid-template-columns: 32px 1fr; }
+      .event-left { display: none; }
+      .event-dot  { grid-column: 1; }
+      .event-right { grid-column: 2; padding-left: 1rem; text-align: left; }
+      .event-right .event-card::after { display: none; }
+    }
+
+    /* Fade in */
+    @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:none} }
+    .fade { animation: fadeUp .4s ease both; }
+    .event-card { animation: fadeUp .4s ease both; }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="max-w-7xl mx-auto px-4 py-2 flex flex-wrap gap-1 items-center">
+    <span class="mono text-xs text-blue-400 font-bold mr-4">⬡ RWI</span>
+    <a href="dashboard.html" class="nav-link">📊 Dashboard</a>
+    <a href="grupos.html" class="nav-link">👥 Grupos</a>
+    <a href="comparar.html" class="nav-link">📋 Comparar</a>
+    <a href="criptografias.html" class="nav-link">🔐 Criptografias</a>
+    <a href="linguagens.html" class="nav-link">⌨️ Linguagens</a>
+    <a href="cve.html" class="nav-link">🛡️ CVEs</a>
+    <a href="org.html" class="nav-link">🏢 Alvos</a>
+    <a href="anatomia.html" class="nav-link active">🧬 Anatomia</a>
+    <a href="timeline.html" class="nav-link">📅 Timeline</a>
+    <a href="ransomware.html" class="nav-link">🏠 Início</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero fade">
+  <h1>📅 Timeline <span style="color:#0ea5e9">Histórica</span></h1>
+  <p style="margin-top:.5rem">Evolução do ransomware de 1989 a 2026 · eventos, ataques e marcos tecnológicos</p>
+</div>
+
+<!-- STATS -->
+<div class="stats-row fade">
+  <div class="stat-chip">Eventos: <strong id="stat-total">—</strong></div>
+  <div class="stat-chip">Exibindo: <strong id="stat-visible">—</strong></div>
+  <div class="stat-chip">Eras: <strong>5</strong></div>
+  <div class="stat-chip">Período: <strong>1989 – 2026</strong></div>
+</div>
+
+<!-- FILTERS + SEARCH -->
+<div class="filter-bar fade">
+  <button class="era-btn active" data-era="all" onclick="filterEra('all')">Todos</button>
+  <button class="era-btn" data-era="1" onclick="filterEra('1')" style="--ea:#0ea5e9">Pioneira 89–12</button>
+  <button class="era-btn" data-era="2" onclick="filterEra('2')" style="--ea:#22c55e">Crypto+BTC 13–16</button>
+  <button class="era-btn" data-era="3" onclick="filterEra('3')" style="--ea:#f97316">Worm 17–18</button>
+  <button class="era-btn" data-era="4" onclick="filterEra('4')" style="--ea:#a855f7">RaaS 19–22</button>
+  <button class="era-btn" data-era="5" onclick="filterEra('5')" style="--ea:#ef4444">Moderno 23–26</button>
+  <input id="searchInput" type="text" placeholder="🔍 Buscar evento…" oninput="applySearch(this.value)">
+  <button class="era-btn" onclick="clearFilters()" style="margin-left:auto">Limpar</button>
+</div>
+
+<!-- TIMELINE -->
+<div class="tl-outer">
+  <div class="tl-spine" id="timeline"></div>
+</div>
+
+<!-- DETAIL PANEL -->
+<div id="overlay" onclick="closePanel()"></div>
+<div id="detailPanel">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+    <span class="mono" style="font-size:.7rem;color:var(--muted)">DETALHE DO EVENTO</span>
+    <button class="dp-close" onclick="closePanel()">✕ fechar</button>
+  </div>
+  <div id="dpContent"></div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+const EVENTS = [
+  // ERA 1 — Pioneira
+  { id:1, era:1, year:1989, date:"Dezembro 1989", title:"AIDS Trojan — o primeiro ransomware", type:"malware", importance:"high",
+    tags:["Locker","Disquete","Turbo Pascal"],
+    short:"Dr. Joseph Popp distribui 20.000 disquetes em conferência da OMS com o primeiro ransomware da história.",
+    detail:"Dr. Joseph Popp, biólogo americano, enviou 20.000 disquetes rotulados 'AIDS Information Introductory Diskette' para participantes de uma conferência da OMS no Zimbábue. O malware, escrito em Turbo Pascal, ocultava diretórios e criptografava nomes de arquivos após 90 inicializações do PC, exigindo $189 enviados por correio para uma caixa postal no Panamá.",
+    impact:"Baixo", link:"https://en.wikipedia.org/wiki/AIDS_(Trojan_horse)", notable:false },
+
+  { id:2, era:1, year:2004, date:"2004–2006", title:"Gpcode — primeiros ataques com RSA", type:"malware", importance:"medium",
+    tags:["Crypto","Russia","C++"],
+    short:"Primeira família a usar criptografia RSA real para bloquear arquivos de usuários russos.",
+    detail:"O Gpcode surgiu na Rússia em 2004 e evoluiu em múltiplas versões até 2010. Nas versões iniciais a chave RSA era tão pequena (56 bits) que pesquisadores da Kaspersky quebraram a criptografia por força bruta em horas. A versão Gpcode.ak (2008) usou RSA-1024 — muito mais difícil — mostrando a curva de aprendizado dos operadores.",
+    impact:"Baixo", link:"", notable:false },
+
+  { id:3, era:1, year:2012, date:"2011–2012", title:"Ransomware 'Police Locker' domina Europa", type:"campaign", importance:"medium",
+    tags:["Locker","Scareware","Europa"],
+    short:"Falsos avisos de 'policia' bloqueavam a tela e exigiam multas de €100–200 por 'conteúdo ilegal'.",
+    detail:"O Police/Ukash ransomware foi o primeiro a atingir escala real de consumidores europeus. Usava branding visual de órgãos policiais locais (FBI nos EUA, BKA na Alemanha, SOCA no Reino Unido) para pressionar psicologicamente vítimas a pagar multas fictícias de €100–200 via vouchers Ukash ou Paysafecard. Estima-se que afetou centenas de milhares de usuários.",
+    impact:"Médio", link:"", notable:false },
+
+  // ERA 2 — Crypto + Bitcoin
+  { id:4, era:2, year:2013, date:"Setembro 2013", title:"CryptoLocker — o divisor de águas", type:"malware", importance:"critical",
+    tags:["RSA-2048+AES","BTC","C++","GameOver Zeus"],
+    short:"Primeiro ransomware moderno com criptografia forte, Bitcoin e infraestrutura botnet profissional.",
+    detail:"CryptoLocker, operado pelo grupo russo Evgeniy Bogachev via botnet GameOver Zeus, foi o modelo que todos os ransomwares modernos seguiram. Usava RSA-2048 + AES-256, pagamento em Bitcoin com prazo de 72h (depois o preço subia), e arrecadou $27M em poucos meses. A Operação Tovar do FBI em junho 2014 derrubou a botnet e recuperou as chaves de decriptação para todas as vítimas.",
+    impact:"Alto", link:"https://www.justice.gov/usao-wdpa/pr/bogachev-indicted", notable:true },
+
+  { id:5, era:2, year:2014, date:"Junho 2014", title:"Operação Tovar derruba CryptoLocker", type:"operation", importance:"high",
+    tags:["FBI","Europol","Takedown","GameOver Zeus"],
+    short:"Coalizão internacional do FBI e Europol destrói a botnet GameOver Zeus e libera decryptors para todas as vítimas.",
+    detail:"A Operação Tovar foi uma ação coordenada de aplicação da lei em mais de 10 países, liderada pelo FBI e Europol com parceiros privados (CrowdStrike, Dell SecureWorks, Mandiant). Além de derrubar o CryptoLocker, também desmantelou a botnet GameOver Zeus de Evgeniy Bogachev, que tinha infectado 1 milhão de computadores. O site decryptcryptolocker.com liberou chaves gratuitas para vítimas.",
+    impact:"Alto", link:"https://www.justice.gov/opa/pr/us-leads-multi-national-action-against-gameover-zeus-botnet", notable:true },
+
+  { id:6, era:2, year:2015, date:"Dezembro 2015–2018", title:"SamSam — primeiro 'Big Game Hunting'", type:"malware", importance:"high",
+    tags:["Java","RSA+AES","Manual","Saúde","Governo"],
+    short:"Iranianos atacavam manualmente alvos de alto valor via RDP — sem afiliados, sem automação.",
+    detail:"SamSam foi operado por dois iranenses (Faramarz Shahi Savandi e Mohammad Mehdi Shah Mansouri, indiciados pelo DOJ em 2018) e foi revolucionário por ser inteiramente manual: cada ataque era executado por humanos através de força bruta em RDP. O foco em hospitais, prefeituras e universidades (City of Atlanta: $17M de dano em 2018) estabeleceu o modelo 'big game hunting' que Ryuk e outros adotariam anos depois.",
+    impact:"Médio", link:"https://www.justice.gov/opa/pr/two-iranian-men-indicted-deploying-samsam-ransomware-extort-hospitals-municipalities-and", notable:true },
+
+  { id:7, era:2, year:2016, date:"Fevereiro 2016", title:"Hollywood Presbyterian Hospital paga $17k", type:"incident", importance:"medium",
+    tags:["Saúde","EUA","Locky"],
+    short:"Hospital americano volta ao papel e caneta por dias antes de pagar resgate — primeiro grande ataque em healthcare.",
+    detail:"O Hollywood Presbyterian Medical Center em Los Angeles ficou sem acesso a sistemas por 10 dias após infecção pelo Locky ransomware. Médicos usaram fax e papel para comunicação. O hospital pagou 40 Bitcoin (~$17.000 à época). Este caso foi um alerta global: a saúde era um alvo lucrativo e vulnerável.",
+    impact:"Médio", link:"", notable:false },
+
+  { id:8, era:2, year:2016, date:"2016", title:"Cerber — primeiro RaaS com texto-por-voz", type:"malware", importance:"medium",
+    tags:["C++","RaaS","AES+RSA","161 afiliados"],
+    short:"Primeiro ransomware-as-a-service com 161 afiliados ativos e nota de resgate narrada em áudio.",
+    detail:"Cerber foi o primeiro ransomware a usar síntese de voz para narrar a nota de resgate às vítimas — uma inovação psicológica assustadora. Com 161 afiliados ativos e pico de $2.5M/mês em 2016, demonstrou o poder do modelo RaaS. Estima-se que afetou mais de 4 milhões de usuários globalmente.",
+    impact:"Alto", link:"", notable:false },
+
+  // ERA 3 — Worm / Destrutivo
+  { id:9, era:3, year:2017, date:"12 de Maio 2017", title:"WannaCry infecta 300k sistemas em 72h", type:"incident", importance:"critical",
+    tags:["EternalBlue","Worm","Coreia do Norte","NHS","150 países"],
+    short:"O maior ataque de ransomware da história até então: worm autopropagante via EternalBlue derruba hospitais, telcos e empresas em 150+ países.",
+    detail:"WannaCry, atribuído ao grupo Lazarus da Coreia do Norte, usou o exploit EternalBlue (vazado pela NSA via Shadow Brokers) para se propagar autonomamente sem interação humana. Em 72h infectou 300.000 sistemas em 150 países. O NHS do Reino Unido cancelou 19.000 consultas e cirurgias. Pesquisador britânico Marcus Hutchins descobriu acidentalmente o kill-switch ao registrar um domínio por $10.69. Dano estimado: $4–8 bilhões.",
+    impact:"Crítico", link:"https://www.ncsc.gov.uk/news/wannacry-ransomware-and-how-to-protect-your-organisation", notable:true },
+
+  { id:10, era:3, year:2017, date:"27 de Junho 2017", title:"NotPetya — o maior ataque cibernético da história", type:"incident", importance:"critical",
+    tags:["Wiper","GRU","Rússia","Maersk","EternalBlue","$10B dano"],
+    short:"Wiper disfarçado de ransomware atribuído ao GRU russo destrói dados globalmente causando $10B em danos.",
+    detail:"NotPetya foi projetado para destruir, não extorquir: a chave de decriptação era matematicamente impossível de recuperar. Distribuído via atualização comprometida do software ucraniano M.E.Doc, se propagou globalmente. Maersk perdeu $300M e reinstalou 45.000 PCs em 10 dias. Merck perdeu $870M. FedEx TNT: $400M. Mondelez: $100M. Atribuído publicamente à unidade GRU Sandworm por EUA, Reino Unido e aliados.",
+    impact:"Catastrófico", link:"https://www.wired.com/story/notpetya-cyberattack-ukraine-russia-code-crashed-the-world/", notable:true },
+
+  { id:11, era:3, year:2017, date:"Outubro 2017", title:"Bad Rabbit — ataque a mídia e aeroportos", type:"incident", importance:"medium",
+    tags:["Drive-by","Rússia","Ucrânia","Flash falso"],
+    short:"Falso instalador do Adobe Flash em sites comprometidos distribui worm para mídia russa e aeroporto de Odessa.",
+    detail:"Bad Rabbit foi distribuído via sites de notícias russos comprometidos (Fontanka.ru, Interfax) como instalador falso do Adobe Flash. Além de encriptar arquivos, sobrescrevia o MBR e usava Mimikatz para roubar credenciais de rede. Afetou Interfax, metro de Kiev e aeroporto de Odessa na Ucrânia.",
+    impact:"Médio", link:"", notable:false },
+
+  { id:12, era:3, year:2018, date:"Janeiro 2018", title:"GandCrab lança o RaaS moderno", type:"malware", importance:"high",
+    tags:["C++","RaaS","DASH","70-80 afiliados"],
+    short:"GandCrab reinventa o RaaS com portal de afiliados profissional, suporte técnico 24/7 e modelo de comissão.",
+    detail:"GandCrab, operado por um grupo romeno, foi o modelo de negócio que todos os RaaS modernos copiariam: portal web para afiliados, divisão 60/40 de lucros, suporte técnico profissional, fórum de feedback. Em apenas 18 meses arrecadou $2B (maior receita de qualquer ransomware na época). Em junho 2019 os operadores anunciaram voluntariamente o encerramento: 'Nós fizemos nosso trabalho.'",
+    impact:"Massivo", link:"", notable:true },
+
+  // ERA 4 — RaaS Big Game
+  { id:13, era:4, year:2019, date:"Abril 2019", title:"Maze introduz a Dupla Extorsão", type:"malware", importance:"critical",
+    tags:["Double Extortion","Leak site","C++","Pioneiro"],
+    short:"Maze é o primeiro grupo a publicar dados roubados — criando o modelo de dupla extorsão que todos adotariam.",
+    detail:"O grupo Maze criou um site público ('Maze News') para vazar dados de vítimas que se recusavam a pagar. Isso foi uma revolução: antes, se a vítima tinha backup, podia ignorar o ransomware. Com dupla extorsão, o backup não protegia mais — os dados já haviam sido roubados. Em novembro 2021 o grupo se encerrou, mas o modelo foi copiado por praticamente todos os grupos seguintes.",
+    impact:"Alto", link:"", notable:true },
+
+  { id:14, era:4, year:2019, date:"Outubro 2019", title:"LockBit 1.0 — o mais rápido do mercado", type:"malware", importance:"high",
+    tags:["C++","RaaS","AES-256","Velocidade"],
+    short:"LockBit lança com foco em velocidade de encriptação — testado e validado em fóruns do underground antes do lançamento.",
+    detail:"LockBit surgiu divulgando benchmarks de velocidade de encriptação em fóruns de hacking — marketing direto ao seu público-alvo: afiliados criminosos. Sua principal vantagem técnica era a velocidade: encriptava arquivos mais rápido que qualquer concorrente, reduzindo a janela de detecção. Em 2022 lançou LockBit 3.0 com bug bounty público, e em 2023 se tornou o grupo mais prolífico do mundo.",
+    impact:"Muito alto", link:"", notable:true },
+
+  { id:15, era:4, year:2020, date:"Agosto 2020", title:"Conti — o grupo mais sofisticado do RaaS", type:"malware", importance:"high",
+    tags:["C++","RaaS","Wizard Spider","100 afiliados"],
+    short:"Conti surge como a versão corporativa do Ryuk: operação estruturada com salários, hierarquias e treinamento.",
+    detail:"Conti, operado pelo grupo Wizard Spider (também responsável pelo Ryuk), foi revelado em toda sua complexidade em março 2022, quando um pesquisador ucraniano vazou 60.000+ mensagens internas após o grupo declarar apoio à Rússia na invasão da Ucrânia. Os chats mostravam: departamentos de RH, salários fixos ($1.500-2.000/mês), gestores, desenvolvedores, negociadores — uma empresa criminosa real.",
+    impact:"Alto", link:"https://krebsonsecurity.com/2022/03/conti-ransomware-group-diaries-part-i-evasion/", notable:true },
+
+  { id:16, era:4, year:2020, date:"Junho 2020", title:"Snake/Ekans para produção da Honda e Enel", type:"incident", importance:"high",
+    tags:["ICS/SCADA","Go","Industrial","Honda","Enel"],
+    short:"Primeiro ransomware a matar processos industriais ICS/SCADA antes de encriptar — Honda para produção global.",
+    detail:"Snake (EKANS) foi o primeiro ransomware especificamente projetado para ambientes industriais: continha uma lista hardcoded de 64 processos ICS/SCADA para matar antes da encriptação. Em junho 2020 afetou a Honda, parando linhas de produção nos EUA, Europa e Japão, e a Enel Group na Itália. Primeiro ataque ransomware com impacto real em infraestrutura industrial.",
+    impact:"Alto", link:"", notable:false },
+
+  { id:17, era:4, year:2021, date:"7 de Maio 2021", title:"Colonial Pipeline — DarkSide cria crise de combustível nos EUA", type:"incident", importance:"critical",
+    tags:["DarkSide","Infraestrutura Crítica","$4.4M pago","Combustível"],
+    short:"Ataque ao maior oleoduto dos EUA causa escassez de combustível em 17 estados — Biden declara emergência nacional.",
+    detail:"O DarkSide infectou os sistemas de TI da Colonial Pipeline, que por precaução desligou o oleoduto que abastece 45% do combustível da costa leste dos EUA. Biden declarou estado de emergência. Postos ficaram sem gasolina em 6 estados. A Colonial pagou $4.4M em Bitcoin — o FBI posteriormente recuperou $2.3M. O impacto político forçou o DarkSide a encerrar operações dias depois.",
+    impact:"Catastrófico", link:"https://www.justice.gov/opa/pr/department-justice-seizes-23-million-cryptocurrency-paid-ransomware-extortionists-darkside", notable:true },
+
+  { id:18, era:4, year:2021, date:"2 de Julho 2021", title:"Kaseya VSA — REvil atinge 1.500 empresas via supply chain", type:"incident", importance:"critical",
+    tags:["REvil","Supply Chain","Zero-day","Kaseya","MSP"],
+    short:"Zero-day no software de gerenciamento MSP compromete 1.500 empresas simultaneamente em um único ataque.",
+    detail:"O REvil explorou uma vulnerabilidade zero-day (CVE-2021-30116) no Kaseya VSA, software usado por provedores de serviços gerenciados (MSPs). Um único ataque comprometeu 60 MSPs e 1.500 empresas clientes ao mesmo tempo. Pedido total: $70M para decriptor universal. O FBI obteve a chave e a liberou sem pagar. Semanas depois o REvil desapareceu misteriosamente.",
+    impact:"Alto", link:"", notable:true },
+
+  { id:19, era:4, year:2021, date:"Julho 2021", title:"BlackCat/ALPHV — primeiro grande ransomware em Rust", type:"malware", importance:"high",
+    tags:["Rust","RaaS","Inovação","XMR","Cross-platform"],
+    short:"Escrito em Rust, o ALPHV opera em Windows, Linux e VMware ESXi — novo padrão técnico para a indústria.",
+    detail:"BlackCat/ALPHV foi escrito em Rust, linguagem incomum para malware mas que oferece vantagens: binários multiplataforma (Windows, Linux, ESXi), baixo footprint e difícil análise por ferramentas tradicionais. Representou um salto técnico significativo. Em 2023 infectou MGM Resorts ($100M de dano) e Caesars Palace ($15M pago). O FBI derrubou a infra em dezembro 2023, mas o grupo fez um exit scam de $22M antes.",
+    impact:"Alto", link:"", notable:true },
+
+  { id:20, era:4, year:2022, date:"Abril 2022", title:"Conti destrói infraestrutura da Costa Rica", type:"incident", importance:"high",
+    tags:["Conti","Estado-Nação","Costa Rica","$20M pedido"],
+    short:"Conti declara 'guerra' à Costa Rica, o único país a declarar emergência nacional por ataque de ransomware.",
+    detail:"O Conti atacou 27 agências governamentais da Costa Rica, pedindo $20M. O presidente recém-eleito Rodrigo Chaves declarou emergência nacional em 8 de maio de 2022 — a primeira declaração de emergência por ransomware na história. O ataque paralisou pagamento de impostos, importações e exportações por semanas. Foi um dos últimos grandes atos do Conti antes do grupo se dissolver.",
+    impact:"Catastrófico", link:"https://www.reuters.com/world/americas/costa-rica-declares-national-emergency-after-ransomware-attack-2022-05-08/", notable:true },
+
+  { id:21, era:4, year:2022, date:"Março 2022", title:"Vazamento Conti Leaks expõe operação interna", type:"operation", importance:"high",
+    tags:["Conti","Ukraine","60k mensagens","Exposição"],
+    short:"Pesquisador ucraniano vaza 60.000 mensagens internas do Conti, revelando estrutura corporativa do crime.",
+    detail:"Após o Conti declarar apoio à invasão russa da Ucrânia, um pesquisador ucraniano com acesso interno publicou 60.000+ mensagens do chat interno do grupo. O vazamento revelou: salários ($1.500-2.000/mês), hierarquia corporativa, discussões de RH, processos de treinamento de novos 'funcionários', e estratégias de negociação de resgates. Foi o maior vazamento interno de um grupo criminoso cibernético.",
+    impact:"Alto", link:"https://krebsonsecurity.com/2022/03/conti-ransomware-group-diaries-part-i-evasion/", notable:true },
+
+  { id:22, era:4, year:2023, date:"26 de Janeiro 2023", title:"FBI infiltra e destrói o Hive por 6 meses", type:"operation", importance:"high",
+    tags:["FBI","Hive","Takedown","300 decryptors"],
+    short:"FBI infiltrou o Hive por 6 meses, distribuindo silenciosamente 300 chaves de decriptação antes de desmantelar a infra.",
+    detail:"O FBI penetrou nos sistemas do Hive em julho 2022 — e ficou em silêncio por 6 meses, monitorando operações e distribuindo secretamente 300 chaves de decriptação para vítimas que ainda não tinham pago. Em janeiro 2023 revelou a operação e derrubou os servidores, estimando ter economizado $130M em resgates que não foram pagos. Considerada uma das operações anti-ransomware mais bem-sucedidas.",
+    impact:"Alto", link:"https://www.justice.gov/opa/pr/fbi-disrupts-hive-ransomware-group", notable:true },
+
+  // ERA 5 — Moderno / PQ
+  { id:23, era:5, year:2023, date:"Junho 2023", title:"MOVEit — Clop compromete 2.700+ organizações", type:"incident", importance:"critical",
+    tags:["Clop","SQLi","Supply Chain","93M registros","MOVEit"],
+    short:"Único zero-day no MOVEit Transfer compromete 2.700 organizações e expõe dados de 93 milhões de pessoas.",
+    detail:"O grupo Clop explorou CVE-2023-34362 (SQL Injection no MOVEit Transfer) para exfiltrar dados de 2.700+ organizações em semanas, sem encriptar nada — apenas roubou e extorquiu. Afetados: BBC, British Airways, Shell, governo do estado de Louisiana (6M residentes), governo da Nova Scotia (100k), Oregon DMV (3.5M), Ofcom. Total de indivíduos expostos: ~93 milhões. O Clop nunca publicou vítimas que pagaram.",
+    impact:"Crítico", link:"https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-158a", notable:true },
+
+  { id:24, era:5, year:2023, date:"Setembro 2023", title:"MGM Resorts perde $100M em 10 minutos de phone hacking", type:"incident", importance:"high",
+    tags:["ALPHV/BlackCat","Scattered Spider","Vishing","MGM","$100M"],
+    short:"Grupo 'Scattered Spider' invade a MGM via vishing de 10 min ao helpdesk — casino fica sem sistemas por dias.",
+    detail:"O ataque à MGM Resorts é notório pela simplicidade do vetor: o grupo Scattered Spider (jovens americanos e britânicos) encontrou um funcionário da MGM no LinkedIn e ligou para o helpdesk fingindo ser ele. Em 10 minutos obtiveram acesso privilegiado. Depois implantaram o ALPHV. Por 10 dias as slot machines ficaram offline, check-ins eram manuais, elevadores não funcionavam. Dano estimado: $100M. MGM não pagou. Dois dias depois, Caesars Palace pagou $15M silenciosamente.",
+    impact:"Crítico", link:"https://www.wsj.com/articles/mgm-resorts-casino-hack-caesars-2023-ed47eb2a", notable:true },
+
+  { id:25, era:5, year:2024, date:"19 de Fevereiro 2024", title:"Operação Cronos derruba LockBit", type:"operation", importance:"critical",
+    tags:["LockBit","NCA","FBI","Europol","Takedown","Afiliados"],
+    short:"Maior operação policial anti-ransomware da história: NCA, FBI e Europol sequestram infra do LockBit globalmente.",
+    detail:"A Operação Cronos foi uma ação de 10 países liderada pela NCA britânica com FBI, Europol e outros. Resultados: servidores de infraestrutura sequestrados, 200 carteiras Bitcoin confiscadas, decryptors gratuitos disponibilizados, 2 operadores presos (Polônia e Ucrânia), e a identidade real do líder (LockBitSupp) revelada como Dmitry Khoroshev. O site de vazamento do LockBit foi substituído por comunicados policiais. O grupo ressurgiu semanas depois com LockBit 5.",
+    impact:"Alto", link:"https://www.nationalcrimeagency.gov.uk/news/nca-leads-international-disruption-of-lockbit-the-worlds-most-harmful-ransomware-group", notable:true },
+
+  { id:26, era:5, year:2024, date:"Fevereiro 2024", title:"Change Healthcare — 100M americanos expostos", type:"incident", importance:"critical",
+    tags:["RansomHub","ALPHV","$22M","Change Healthcare","Saúde","100M"],
+    short:"Maior breach em dados de saúde da história americana: 100 milhões de registros de pacientes expostos.",
+    detail:"A Change Healthcare (subsidiária da UnitedHealth Group) foi atacada pelo ALPHV, que pagou $22M aos afiliados e depois desapareceu em exit scam. O RansomHub então roubou os dados e exigiu pagamento adicional. O ataque paralisou farmácias, hospitais e processamento de sinistros médicos nos EUA por semanas. A UnitedHealth pagou $22M inicialmente — confirmado publicamente — e estima-se que 100M+ registros de pacientes foram comprometidos.",
+    impact:"Crítico", link:"https://www.hhs.gov/hipaa/for-professionals/breach-notification/breaches-affecting-500/index.html", notable:true },
+
+  { id:27, era:5, year:2024, date:"Junho 2024", title:"Qilin rouba credenciais Chrome antes de encriptar", type:"malware", importance:"high",
+    tags:["Qilin","Chrome","Credential theft","Go/Rust","Inovação"],
+    short:"Qilin inova roubando todas as credenciais salvas no Chrome antes da encriptação — ampliando o raio de ataques futuros.",
+    detail:"Pesquisadores da Sophos descobriram que o Qilin passou a incluir um script para extrair credenciais salvas no Google Chrome de todas as máquinas da rede antes de encriptar. Esta técnica expande dramaticamente o impacto: além dos dados da empresa, o grupo obtém acesso a contas pessoais, outros serviços corporativos, e fornece material para ataques futuros. Em junho 2024 o Qilin atacou a Synnovis (NHS Londres), cancelando 800+ cirurgias.",
+    impact:"Muito alto", link:"", notable:true },
+
+  { id:28, era:5, year:2025, date:"Abril 2025", title:"DragonForce paralisa Marks & Spencer — £300M de impacto", type:"incident", importance:"high",
+    tags:["DragonForce","M&S","Varejo","Reino Unido","£300M"],
+    short:"Ataque ao varejo britânico mais icônico causa disrupção massiva em lojas físicas e online por semanas.",
+    detail:"O DragonForce atacou a Marks & Spencer, causando: queda do sistema de pagamento contactless, impossibilidade de pedidos online, prateleiras vazias por quebra na cadeia logística, e exposição de dados de 9 milhões de clientes. Impacto estimado: £300M em perda de receita e custos de recuperação. Na mesma campanha, o grupo também atacou Co-op e Harrods no Reino Unido, sinalizando foco estratégico no varejo premium britânico.",
+    impact:"Alto", link:"", notable:true },
+
+  { id:29, era:5, year:2025, date:"2025", title:"Qilin v2026 — phishing gerado por IA", type:"malware", importance:"high",
+    tags:["IA","LLM","Spear-phishing","Pós-quântico","Inovação"],
+    short:"Grupo usa modelos de linguagem para gerar spear-phishing hiper-personalizado e evadir filtros de email corporativos.",
+    detail:"Inteligência de ameaças em 2025 reportou uso crescente de LLMs por grupos de ransomware para: gerar e-mails de phishing fluentes em qualquer idioma sem erros gramaticais, personalizar iscas com informações de LinkedIn/redes sociais das vítimas, e adaptar textos para passar por filtros de email. O Qilin foi identificado entre os primeiros a integrar geração de texto por IA em sua cadeia de ataque.",
+    impact:"Crítico", link:"", notable:false },
+
+  { id:30, era:5, year:2026, date:"2026 (em curso)", title:"Akira NextGen — criptografia pós-quântica em produção", type:"malware", importance:"high",
+    tags:["Rust","Kyber","Pós-quântico","NIST PQC","Akira"],
+    short:"Primeiro ransomware em produção com Kyber (NIST PQC) como substituto do RSA — resistente a computadores quânticos.",
+    detail:"O Akira NextGen (2026) é o primeiro ransomware confirmado a usar Kyber-1024 (NIST FIPS 203) em substituição ao RSA para proteção da chave de sessão. Isso significa que mesmo que computadores quânticos se tornem praticáveis, a decriptação sem a chave privada seria impossível. Combina ChaCha20 (dados) + Kyber (troca de chave) em uma arquitetura que pode sobreviver à era pós-quântica.",
+    impact:"Alto", link:"", notable:true },
+];
+
+// ── ERA CONFIG ─────────────────────────────────────────────────────────────────
+const ERAS = {
+  1: { name:"Pioneira",     color:"#0ea5e9", bg:"rgba(14,165,233,.1)" },
+  2: { name:"Crypto+BTC",  color:"#22c55e", bg:"rgba(34,197,94,.1)"  },
+  3: { name:"Worm",        color:"#f97316", bg:"rgba(249,115,22,.1)" },
+  4: { name:"RaaS",        color:"#a855f7", bg:"rgba(168,85,247,.1)" },
+  5: { name:"Moderno/PQ",  color:"#ef4444", bg:"rgba(239,68,68,.1)"  },
+};
+
+const TYPE_ICONS = {
+  malware:   { icon:"fa-skull",         label:"Malware"     },
+  incident:  { icon:"fa-bolt",          label:"Incidente"   },
+  operation: { icon:"fa-shield-halved", label:"Operação"    },
+  campaign:  { icon:"fa-fire",          label:"Campanha"    },
+};
+
+// ── STATE ──────────────────────────────────────────────────────────────────────
+let activeEra = "all";
+let searchTerm = "";
+let openEventId = null;
+
+// ── RENDER ─────────────────────────────────────────────────────────────────────
+function getVisible() {
+  return EVENTS.filter(e => {
+    const eraOk = activeEra === "all" || String(e.era) === activeEra;
+    const q = searchTerm.toLowerCase();
+    const textOk = !q || [e.title, e.short, e.detail, ...e.tags].join(" ").toLowerCase().includes(q);
+    return eraOk && textOk;
+  });
+}
+
+function render() {
+  const visible = getVisible();
+  document.getElementById("stat-total").textContent = EVENTS.length;
+  document.getElementById("stat-visible").textContent = visible.length;
+
+  const container = document.getElementById("timeline");
+  container.innerHTML = "";
+
+  // Group by year
+  const byYear = {};
+  visible.forEach(e => { (byYear[e.year] = byYear[e.year] || []).push(e); });
+  const years = Object.keys(byYear).sort((a,b)=>a-b);
+
+  const ERA_STARTS = { 1989:1, 2013:2, 2017:3, 2019:4, 2023:5 };
+  let side = 0; // alternates 0=right, 1=left
+
+  years.forEach(yr => {
+    // Year marker
+    const eraId = ERA_STARTS[yr];
+    const yrDiv = document.createElement("div");
+    yrDiv.className = "year-marker";
+    const pill = document.createElement("div");
+    pill.className = "year-pill" + (eraId ? " era-start" : "");
+    if (eraId) {
+      const era = ERAS[eraId];
+      pill.style.borderColor = era.color;
+      pill.style.color = era.color;
+      pill.innerHTML = `${yr} <span style="font-size:.6rem;opacity:.7;margin-left:4px">${era.name}</span>`;
+    } else {
+      pill.textContent = yr;
+    }
+    yrDiv.appendChild(pill);
+    container.appendChild(yrDiv);
+
+    // Events in this year
+    byYear[yr].forEach((ev, idx) => {
+      const era = ERAS[ev.era];
+      const isLeft = (side % 2 === 1);
+      side++;
+
+      const row = document.createElement("div");
+      row.className = "event-row";
+      row.id = `row-${ev.id}`;
+
+      // Build card HTML
+      const imp = ev.importance;
+      const badgeColor = imp === "critical" ? "#ef4444" : imp === "high" ? "#f97316" : "#eab308";
+      const badgeLabel = imp === "critical" ? "CRÍTICO" : imp === "high" ? "ALTO" : "MÉDIO";
+      const typeConf = TYPE_ICONS[ev.type];
+      const tagsHtml = ev.tags.slice(0,4).map(t => `<span class="dp-tag">${t}</span>`).join(" ");
+
+      const cardHtml = `
+        <div class="card-date">${ev.date}</div>
+        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.35rem;flex-wrap:wrap">
+          <span class="badge" style="background:${badgeColor}20;color:${badgeColor}">${badgeLabel}</span>
+          <span class="badge" style="background:rgba(255,255,255,.05);color:var(--subtle)">
+            <i class="fas ${typeConf.icon}" style="margin-right:3px;font-size:.55rem"></i>${typeConf.label}
+          </span>
+        </div>
+        <div class="card-title">${ev.title}</div>
+        <div class="card-desc">${ev.short}</div>
+        ${ev.notable ? `<div style="margin-top:.5rem;font-size:.62rem;color:${era.color};font-family:'JetBrains Mono',monospace">★ Evento marcante</div>` : ""}
+      `;
+
+      // Build card element
+      const cardEl = document.createElement("div");
+      cardEl.className = "event-card";
+      cardEl.innerHTML = cardHtml;
+      cardEl.style.borderColor = "var(--border)";
+      cardEl.style.setProperty("--ec", era.color);
+      cardEl.addEventListener("click", () => openDetail(ev.id));
+      cardEl.addEventListener("mouseenter", () => { cardEl.style.borderColor = era.color; });
+      cardEl.addEventListener("mouseleave", () => {
+        if (openEventId !== ev.id) cardEl.style.borderColor = "var(--border)";
+      });
+
+      // Card stripe (via pseudo-element mimic via box-shadow)
+      const stripeDiv = document.createElement("div");
+      stripeDiv.style.cssText = `position:absolute;${isLeft?'right':'left'}:-1px;top:14px;bottom:14px;width:3px;border-radius:${isLeft?'0 3px 3px 0':'3px 0 0 3px'};background:${era.color};`;
+      cardEl.style.position = "relative";
+      cardEl.appendChild(stripeDiv);
+
+      // Dot
+      const dotEl = document.createElement("div");
+      dotEl.className = "dot" + (ev.notable ? " pulse-ring" : "");
+      dotEl.style.cssText = `background:${era.color};border-color:${era.color};color:${era.color};`;
+      dotEl.addEventListener("click", () => openDetail(ev.id));
+
+      // Assemble row
+      if (isLeft) {
+        const leftCell = document.createElement("div");
+        leftCell.className = "event-left";
+        leftCell.appendChild(cardEl);
+        const dotCell = document.createElement("div");
+        dotCell.className = "event-dot";
+        dotCell.appendChild(dotEl);
+        const rightCell = document.createElement("div");
+        rightCell.className = "event-right";
+        row.appendChild(leftCell);
+        row.appendChild(dotCell);
+        row.appendChild(rightCell);
+      } else {
+        const leftCell = document.createElement("div");
+        leftCell.className = "event-left";
+        const dotCell = document.createElement("div");
+        dotCell.className = "event-dot";
+        dotCell.appendChild(dotEl);
+        const rightCell = document.createElement("div");
+        rightCell.className = "event-right";
+        rightCell.appendChild(cardEl);
+        row.appendChild(leftCell);
+        row.appendChild(dotCell);
+        row.appendChild(rightCell);
+      }
+
+      container.appendChild(row);
+    });
+  });
+
+  if (visible.length === 0) {
+    container.innerHTML = `<div style="text-align:center;padding:3rem;color:var(--muted);font-size:.85rem">Nenhum evento encontrado. <button onclick="clearFilters()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-family:inherit;font-size:.85rem;text-decoration:underline">Limpar filtros</button></div>`;
+  }
+}
+
+// ── DETAIL PANEL ───────────────────────────────────────────────────────────────
+function openDetail(id) {
+  const ev = EVENTS.find(e => e.id === id);
+  if (!ev) return;
+  const era = ERAS[ev.era];
+  openEventId = id;
+
+  // Highlight active card
+  document.querySelectorAll(".event-card").forEach(c => {
+    c.style.borderColor = "var(--border)";
+    c.classList.remove("active");
+  });
+  const row = document.getElementById(`row-${id}`);
+  if (row) {
+    const card = row.querySelector(".event-card");
+    if (card) { card.style.borderColor = era.color; card.classList.add("active"); }
+  }
+
+  const tagsHtml = ev.tags.map(t => `<span class="dp-tag">${t}</span>`).join(" ");
+  const typeConf = TYPE_ICONS[ev.type];
+
+  document.getElementById("dpContent").innerHTML = `
+    <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.25rem">
+      <div style="width:28px;height:28px;border-radius:50%;background:${era.color}20;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <i class="fas ${typeConf.icon}" style="font-size:.7rem;color:${era.color}"></i>
+      </div>
+      <span class="mono" style="font-size:.65rem;color:${era.color}">${ev.date}</span>
+    </div>
+
+    <h2 style="font-size:1.05rem;font-weight:800;line-height:1.3;margin-bottom:.75rem;color:var(--text)">${ev.title}</h2>
+
+    <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1rem">${tagsHtml}</div>
+
+    <div style="background:${era.color}0d;border:1px solid ${era.color}30;border-radius:8px;padding:.85rem;margin-bottom:1rem">
+      <div class="mono" style="font-size:.65rem;color:${era.color};margin-bottom:.35rem">RESUMO</div>
+      <div style="font-size:.8rem;color:var(--subtle);line-height:1.6">${ev.short}</div>
+    </div>
+
+    <div style="font-size:.82rem;color:var(--subtle);line-height:1.7;margin-bottom:1rem">${ev.detail}</div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:1rem">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.65rem">
+        <div class="mono" style="font-size:.6rem;color:var(--muted);margin-bottom:.2rem">ERA</div>
+        <div style="font-size:.8rem;font-weight:700;color:${era.color}">${era.name}</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.65rem">
+        <div class="mono" style="font-size:.6rem;color:var(--muted);margin-bottom:.2rem">IMPACTO</div>
+        <div style="font-size:.8rem;font-weight:700;color:${ev.impact==='Catastrófico'?'#ef4444':ev.impact==='Crítico'?'#ef4444':ev.impact==='Muito alto'?'#f97316':'#eab308'}">${ev.impact}</div>
+      </div>
+    </div>
+
+    ${ev.notable ? `<div style="display:flex;align-items:center;gap:.5rem;padding:.6rem .85rem;background:${era.color}0d;border:1px solid ${era.color}25;border-radius:8px;margin-bottom:1rem;font-size:.75rem;color:${era.color}">
+      <i class="fas fa-star" style="font-size:.7rem"></i>
+      Evento marcante na história do ransomware
+    </div>` : ""}
+
+    ${ev.link ? `<a href="${ev.link}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:.4rem;font-size:.75rem;color:var(--accent);text-decoration:none;font-family:'JetBrains Mono',monospace">
+      <i class="fas fa-external-link-alt" style="font-size:.65rem"></i>Fonte / referência
+    </a>` : ""}
+  `;
+
+  document.getElementById("detailPanel").classList.add("open");
+  document.getElementById("overlay").classList.add("open");
+}
+
+function closePanel() {
+  document.getElementById("detailPanel").classList.remove("open");
+  document.getElementById("overlay").classList.remove("open");
+  document.querySelectorAll(".event-card").forEach(c => {
+    c.style.borderColor = "var(--border)";
+    c.classList.remove("active");
+  });
+  openEventId = null;
+}
+
+// ── FILTER FUNCTIONS ───────────────────────────────────────────────────────────
+function filterEra(era) {
+  activeEra = era;
+  document.querySelectorAll(".era-btn").forEach(b => {
+    const isActive = b.dataset.era === era;
+    b.classList.toggle("active", isActive);
+    if (isActive) {
+      const eId = b.dataset.era;
+      if (eId !== "all") {
+        b.style.background = ERAS[eId]?.color || "#334155";
+        b.style.borderColor = ERAS[eId]?.color || "#334155";
+        b.style.color = "#fff";
+      } else {
+        b.style.background = "#334155";
+        b.style.borderColor = "#334155";
+        b.style.color = "#fff";
+      }
+    } else {
+      b.style.background = "";
+      b.style.borderColor = "";
+      b.style.color = "";
+    }
+  });
+  render();
+}
+
+function applySearch(val) {
+  searchTerm = val;
+  render();
+}
+
+function clearFilters() {
+  searchTerm = "";
+  document.getElementById("searchInput").value = "";
+  filterEra("all");
+}
+
+// ── INIT ───────────────────────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>
